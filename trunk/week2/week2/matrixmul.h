@@ -45,6 +45,7 @@ typedef struct {
     float* elements;
 } Matrix;
 
+#define TILE_WIDTH 16
 
 #endif // _MATRIXMUL_H_
 
