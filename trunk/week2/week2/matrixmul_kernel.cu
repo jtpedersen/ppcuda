@@ -57,7 +57,7 @@ __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 
 	float pvalue;	
 	int w = M.width;
-	for(int k = 0; k < w ; k++) {
+	for(int k = 0; k < w ; ++k) {
 		pvalue += M.elements[row*w + k] * N.elements[k*w + col];
 	}
 	P.elements[row*w + col] = pvalue;
