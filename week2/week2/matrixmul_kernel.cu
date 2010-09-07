@@ -52,7 +52,15 @@
 __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 {
 
-	/// *** INSERT CODE ***
+	int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
+	int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
+
+	float pvalue;	
+	int w = M.width;
+	for(int k = 0; k < w ; k++) {
+		pvalue += M.elements[row*w + k] * N.elements[k*w + col];
+	}
+	P.elements[row*w + col] = pvalue;
 
 }
 

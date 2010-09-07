@@ -66,6 +66,9 @@ void FreeMatrix(Matrix* M);
 
 void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P);
 
+#define TEST_SIZE 256
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
@@ -78,8 +81,11 @@ int main(int argc, char** argv) {
 	int errorM = 0, errorN = 0;
 	
 	srand(52);
-	
-	if(argc != 5 && argc != 4) 
+	if (argc == 2) {
+		M  = AllocateMatrix(TEST_SIZE, TEST_SIZE, 1);
+		N  = AllocateMatrix(M.width, M.height, 1);
+		P  = AllocateMatrix(M.height, N.width, 0);
+	} else if(argc != 5 && argc != 4) 
 	{
 		// Allocate and initialize the matrices
 		M  = AllocateMatrix(rand() % 1024, rand() % 1024, 1);
@@ -156,10 +162,12 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P)
     CopyToDeviceMatrix(Pd, P); // Clear memory
 
 	// Setup the execution configuration
-	/// *** INSERT CODE ***
+	dim3 dimGrid(P.height/TILE_WIDTH, P.width/TILE_WIDTH);
+	dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
+
  
     // Launch the device computation threads!
-	/// *** INSERT CODE ***
+	MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
 
     // Read P from the device
     CopyFromDeviceMatrix(P, Pd); 
