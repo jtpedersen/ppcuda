@@ -46,6 +46,11 @@ typedef struct {
 } Matrix;
 
 #define TILE_WIDTH 16
+#define TOLERANCE 0.001f
+
+#define HANDLE_ERROR(X, MSG) do { if (cudaSuccess != X) \
+ {printf("cuda fejl: %s\n i %s\n", cudaGetErrorString(cudaGetLastError()), MSG);} } while (0)
+
 
 #endif // _MATRIXMUL_H_
 

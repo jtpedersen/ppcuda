@@ -66,9 +66,16 @@ void FreeMatrix(Matrix* M);
 
 void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P);
 
-#define TEST_SIZE 256
+#define TEST_SIZE 1024
 
-
+void dumb_compare(Matrix a, Matrix b) {
+	for(int i = 0; i < a.width ; i++)
+		for(int j = 0; j < a.width ; j++) {
+			if (abs (a.elements[i*a.width + j] - b.elements[i*a.width + j]) > TOLERANCE) {
+				printf("no match for (%d, %d) a=%f b=%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j]);
+			}
+		}
+		}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
@@ -126,9 +133,11 @@ int main(int argc, char** argv) {
 	printf("CPU computation complete\n");
     // in this case check if the result is equivalent to the expected soluion
     CUTBoolean res = cutComparefe(reference.elements, P.elements, 
-									P.height*P.width, 0.001f);
+									P.height*P.width, TOLERANCE );
     printf("Test %s\n", (1 == res) ? "PASSED" : "FAILED");
-    
+	if(0 == res) {
+dumb_compare(reference, P);
+	}
     if(argc == 5)
     {
 		WriteFile(P, argv[4]);
@@ -154,12 +163,15 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P)
     // Load M and N to the device
     Matrix Md = AllocateDeviceMatrix(M);
     CopyToDeviceMatrix(Md, M);
+	HANDLE_ERROR( cudaPeekAtLastError(), "to device M");
     Matrix Nd = AllocateDeviceMatrix(N);
     CopyToDeviceMatrix(Nd, N);
+	HANDLE_ERROR( cudaPeekAtLastError(), "to device N");
 
     // Allocate P on the device
     Matrix Pd = AllocateDeviceMatrix(P);
     CopyToDeviceMatrix(Pd, P); // Clear memory
+	HANDLE_ERROR( cudaPeekAtLastError(), "to device P");
 
 	// Setup the execution configuration
 	dim3 dimGrid(P.height/TILE_WIDTH, P.width/TILE_WIDTH);
@@ -167,11 +179,12 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P)
 
  
     // Launch the device computation threads!
-	MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+	MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd) ;
 
+    HANDLE_ERROR( cudaPeekAtLastError(), "launch");
     // Read P from the device
     CopyFromDeviceMatrix(P, Pd); 
-
+    HANDLE_ERROR( cudaPeekAtLastError(), "from device");
     // Free device matrices
     FreeDeviceMatrix(&Md);
     FreeDeviceMatrix(&Nd);
@@ -207,8 +220,11 @@ Matrix AllocateMatrix(int height, int width, int init)
 
 	for(unsigned int i = 0; i < M.height * M.width; i++)
 	{
-		M.elements[i] = (init == 0) ? (0.0f) : (rand()*3 / (float)RAND_MAX);
+		M.elements[i] = (init == 0) ? (0.0f) : (rand() / (float)RAND_MAX);
+		M.elements[i] = ( M.elements[i] > TOLERANCE ) ? M.elements[i] : 0.0f ;
 	}
+	
+
     return M;
 }	
 
