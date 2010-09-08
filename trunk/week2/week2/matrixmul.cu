@@ -204,7 +204,7 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
   HANDLE_ERROR( cudaPeekAtLastError(), "to device P");
 
   // Setup the execution configuration
-  dim3 dimGrid(P.height/TILE_WIDTH, P.width/TILE_WIDTH);
+  dim3 dimGrid(ceil(1.0 * P.height/TILE_WIDTH), ceil(1.0 * P.width/TILE_WIDTH));
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
 
   printf("launch configuration: grid (%d x %d) blocks grid (%d x %d)\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
