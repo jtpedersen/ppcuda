@@ -36,12 +36,20 @@
 /* Matrix multiplication: C = A * B.
  * Device code.
  */
-
 #ifndef _MATRIXMUL_KERNEL_H_
 #define _MATRIXMUL_KERNEL_H_
 
 #include <stdio.h>
 #include "matrixmul.h"
+
+
+/*  save a few registers  */
+#define TX (threadIdx.x)
+#define TY (threadIdx.y)
+#define BX (blockIdx.x)
+#define BY (blockIdx.y)
+#define W (M.width)
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Simple test kernel for device functionality
@@ -56,20 +64,12 @@ __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 	int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
 
 	float pvalue;	
-	int w = M.width;
-	for(int k = 0; k < w ; ++k) {
-		pvalue += M.elements[row*w + k] * N.elements[k*w + col];
+	for(int k = 0; k < W ; ++k) {
+		pvalue += M.elements[row*W + k] * N.elements[k*W + col];
 	}
-	P.elements[row*w + col] = pvalue;
+	P.elements[row*W + col] = pvalue;
 
 }
-
-/* save a few registers */
-#define TX (threadIdx.x)
-#define TY (threadIdx.y)
-#define BX (blockIdx.x)
-#define BY (blockIdx.y)
-#define W (M.width)
 
 // Matrix multiplication kernel thread specification
 __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
