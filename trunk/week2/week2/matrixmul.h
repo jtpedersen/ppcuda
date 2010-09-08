@@ -51,6 +51,5 @@ typedef struct {
 #define HANDLE_ERROR(X, MSG) do { if (cudaSuccess != X) \
  {printf("cuda fejl: %s\n i %s\n", cudaGetErrorString(cudaGetLastError()), MSG);} } while (0)
 
-
 #endif // _MATRIXMUL_H_
 

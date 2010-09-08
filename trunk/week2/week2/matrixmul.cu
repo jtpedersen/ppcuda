@@ -66,15 +66,20 @@ void FreeMatrix(Matrix* M);
 
 void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P);
 
-#define TEST_SIZE 512
+#define TEST_SIZE 32
 
 void dumb_compare(Matrix a, Matrix b) {
   for(int i = 0; i < a.width ; i++)
     for(int j = 0; j < a.width ; j++) {
-      if (abs (a.elements[i*a.width + j] - b.elements[i*a.width + j]) > TOLERANCE) {
-	printf("no match for (%d, %d) a=%f b=%f \tdiff==%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j], abs(a.elements[i*a.width + j]- b.elements[i*a.width + j]));
+      float diff = abs (a.elements[i*a.width + j] - b.elements[i*a.width + j]);
+      if ( diff > TOLERANCE) {
+	printf("no match for (%d, %d) a=%f b=%f \tdiff==%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j], diff);
       }
     }
+}
+
+void print_info(Matrix M, Matrix N) {
+  printf("multiplying a (%d x %d) matrix with a (%d x %d) matrix\n", M.width, M.height,  N.width, N.height);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -122,6 +127,7 @@ int main(int argc, char** argv) {
 	}
     }
 
+  print_info(M, N);
   // M * N on the device
   MatrixMulOnDevice(M, N, P);
     
