@@ -84,12 +84,12 @@ __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
 	float pvalue;	
 	for(int m = 0; m < W/TILE_WIDTH; ++m) {
 	  /* loading */
-	  Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH+TX)];
-	  Ns[TY][TX] = N.elements[(m*TILE_WIDTH+TY)*W + col];
+	  Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
+	  Ns[TY][TX] = N.elements[(m*TILE_WIDTH + TY) * W + col];
 
 	  __syncthreads();
 	  for(int k = 0; k < TILE_WIDTH; ++k) {
-	    pvalue += Ms[TY][TX] * Ns[TY][TX];
+	    pvalue += Ms[TY][k] * Ns[k][TX];
 	  }
 	  __syncthreads();
 
