@@ -66,13 +66,15 @@ void FreeMatrix(Matrix* M);
 
 void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type);
 
+
+
 #define TEST_SIZE 32
 
 void dumb_compare(Matrix a, Matrix b) {
   for(int i = 0; i < a.width ; i++)
     for(int j = 0; j < a.width ; j++) {
-      float diff = abs (a.elements[i*a.width + j] - b.elements[i*a.width + j]);
-      if ( diff > TOLERANCE) {
+      float diff = a.elements[i*a.width + j] - b.elements[i*a.width + j];
+      if ( abs(diff) > TOLERANCE) {
 	printf("no match for (%d, %d) a=%f b=%f \tdiff==%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j], diff);
       }
     }
@@ -203,8 +205,12 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
   CopyToDeviceMatrix(Pd, P); // Clear memory
   HANDLE_ERROR( cudaPeekAtLastError(), "to device P");
 
+  /* the texture binding description */
+  const cudaChannelFormatDesc desc = cudaCreateChannelDesc<float>();
+
+
   // Setup the execution configuration
-  dim3 dimGrid(ceil(1.0 * P.height/TILE_WIDTH), ceil(1.0 * P.width/TILE_WIDTH));
+  dim3 dimGrid((int)ceil(1.0 * P.height/TILE_WIDTH), (int)ceil(1.0 * P.width/TILE_WIDTH));
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
 
   printf("launch configuration: grid (%d x %d) blocks grid (%d x %d)\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
@@ -216,6 +222,13 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
     break;
   case 't':
     MatrixMulKernelTiled<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+    break;
+  case 'T':
+    cudaBindTexture( 0,&Mtex, Md.elements ,&desc, Md.width * Md.height * sizeof(float));
+    cudaBindTexture( 0,&Ntex, Nd.elements ,&desc, Nd.width * Nd.height * sizeof(float));
+    MatrixMulKernelTextured<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+    cudaUnbindTexture(Mtex);
+    cudaUnbindTexture(Ntex);
     break;
   default:
     printf("unknown type!!!!!!!!!!!!!!\n");

@@ -60,11 +60,11 @@
 __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 {
 
-	int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
+ 	int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
 	int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
 
-	/* we shouldn't calculate theese */
-	if (row >= P.height || col > P.width)
+	/* we shouldn't calculate these */
+	if (row >= P.height || col >= P.width)
 	  return;
 
 	float pvalue = 0;	
@@ -84,15 +84,22 @@ __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
 
 	int row = BY * TILE_WIDTH + TY;
 	int col = BX * TILE_WIDTH + TX;
-	/* we shouldn't calculate theese */
-	if (row >= P.height || col > P.width)
-	  return;
+	/* we shouldn't calculate these */
+/* 	if (row >= P.height || col >= P.width) */
+	/* but cant return as we later call __syncthreads zeropadding !! */
+/* 	  return; */
 
 	float pvalue = 0;	
-	for(int m = 0; m < W/TILE_WIDTH; ++m) {
-	  /* loading */
-	  Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
-	  Ns[TY][TX] = N.elements[(m*TILE_WIDTH + TY) * W + col];
+	for(int m = 0; m < (int) ceil( 1.0f * W/TILE_WIDTH); ++m) {
+	  /* loading  with inline zero padding??*/
+	  if (m*TILE_WIDTH + TX >= P.height)
+	    Ms[TY][TX] = 0;
+	  else 
+	    Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
+	  if (m*TILE_WIDTH + TY >= P.width )
+	    Ns[TY][TX] = 0;
+	  else 
+	    Ns[TY][TX] = N.elements[(m*TILE_WIDTH + TY) * W + col];
 
 	  __syncthreads();
 	  for(int k = 0; k < TILE_WIDTH; ++k) {
@@ -102,8 +109,28 @@ __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
 
 	}
 	P.elements[row*W + col] = pvalue;
-
-
 }
+
+texture <float, 1> Mtex;
+texture <float, 1> Ntex;
+
+// Matrix multiplication kernel thread specification
+__global__ void MatrixMulKernelTextured(Matrix M, Matrix N, Matrix P)
+{
+
+	int row = BY * TILE_WIDTH + TY;
+	int col = BX * TILE_WIDTH + TX;
+	/* we shouldn't calculate these */
+	if (row >= P.height || col >= P.width)
+	  return;
+
+	float pvalue = 0;	
+	int w = M.width;
+	for(int k = 0; k < w ; ++k) {
+	  pvalue += tex1Dfetch(Mtex, (float) (row*w + k)) * tex1Dfetch(Ntex, (float) (k*w + col));
+	}
+	P.elements[row*w + col] = pvalue;
+}
+
 
 #endif // #ifndef _MATRIXMUL_KERNEL_H_
