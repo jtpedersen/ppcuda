@@ -63,7 +63,11 @@ __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 	int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
 	int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
 
-	float pvalue;	
+	/* we shouldn't calculate theese */
+	if (row >= P.height || col > P.width)
+	  return;
+
+	float pvalue = 0;	
 	int w = M.width;
 	for(int k = 0; k < w ; ++k) {
 		pvalue += M.elements[row*w + k] * N.elements[k*w + col];
@@ -80,8 +84,11 @@ __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
 
 	int row = BY * TILE_WIDTH + TY;
 	int col = BX * TILE_WIDTH + TX;
+	/* we shouldn't calculate theese */
+	if (row >= P.height || col > P.width)
+	  return;
 
-	float pvalue;	
+	float pvalue = 0;	
 	for(int m = 0; m < W/TILE_WIDTH; ++m) {
 	  /* loading */
 	  Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
