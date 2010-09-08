@@ -47,7 +47,7 @@
 #include <cutil.h>
 
 // includes, kernels
-#include <matrixmul_kernel.cu>
+#include "matrixmul_kernel,h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // declarations, forward

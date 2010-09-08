@@ -36,7 +36,7 @@
 # Add source files here
 EXECUTABLE	:= week2
 # Cuda source files (compiled with cudacc)
-CUFILES_sm_10	:= matrixmul.cu #matrixmul_kernel.cu
+CUFILES_sm_10	:= matrixmul.cu matrixmul_kernel.cu
 CCFILES	:= matrixmul_gold.cpp
 
 
