@@ -64,10 +64,11 @@ __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 	int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
 
 	float pvalue;	
-	for(int k = 0; k < W ; ++k) {
-		pvalue += M.elements[row*W + k] * N.elements[k*W + col];
+	int w = M.width;
+	for(int k = 0; k < w ; ++k) {
+		pvalue += M.elements[row*w + k] * N.elements[k*w + col];
 	}
-	P.elements[row*W + col] = pvalue;
+	P.elements[row*w + col] = pvalue;
 
 }
 
