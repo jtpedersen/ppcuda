@@ -64,7 +64,7 @@ void WriteFile(Matrix M, char* file_name);
 void FreeDeviceMatrix(Matrix* M);
 void FreeMatrix(Matrix* M);
 
-void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P);
+void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type);
 
 #define TEST_SIZE 32
 
@@ -82,6 +82,12 @@ void print_info(Matrix M, Matrix N) {
   printf("multiplying a (%d x %d) matrix with a (%d x %d) matrix\n", M.width, M.height,  N.width, N.height);
 }
 
+void print_usage() {
+  printf("supports only square matrices!!\n");
+  printf(" [s, t, T] size \n");
+  printf(" (s)imple, (t)iled, (T)extured\n");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,46 +96,62 @@ int main(int argc, char** argv) {
   Matrix  M;
   Matrix  N;
   Matrix  P;
-  int errorM = 0, errorN = 0;
-	
-  srand(52);
-  if (argc == 2) {
-    M  = AllocateMatrix(TEST_SIZE, TEST_SIZE, 1);
-    N  = AllocateMatrix(M.width, M.height, 1);
-    P  = AllocateMatrix(M.height, N.width, 0);
-  } else if(argc != 5 && argc != 4) 
-    {
-      // Allocate and initialize the matrices
-      M  = AllocateMatrix(rand() % 1024, rand() % 1024, 1);
-      N  = AllocateMatrix(M.width, rand() % 1024, 1);
-      P  = AllocateMatrix(M.height, N.width, 0);
-    }
-  else
-    {
-      // Allocate and read in matrices from disk
-      int* params = NULL; //(int*)malloc(3 * sizeof(int));
-      unsigned int data_read = 3;
-      cutReadFilei(argv[1], &params, &data_read, true);
-      if(data_read != 3){
-	printf("Error reading parameter file\n");
-	return 1;
-      }
 
-      M  = AllocateMatrix(params[0], params[1], 0);
-      N  = AllocateMatrix(params[1], params[2], 0);		
-      P  = AllocateMatrix(params[0], params[2], 0);
-      errorM = ReadFile(&M, argv[2]);
-      errorN = ReadFile(&N, argv[3]);
-      if(errorM  || errorN )
-	{
-	  printf("Error reading input files %d, %d\n", errorM, errorN);
-	  return 1;
-	}
-    }
+  int size;
+  char type;
+  /* a simple runner for testpurposes */
+  if (argc != 3) {
+    print_usage();
+    return 42;
+  }
+  type = *argv[1];
+  size = atoi(argv[2]);
+
+  M  = AllocateMatrix(size, size, 1);
+  N  = AllocateMatrix(M.width, M.height, 1);
+  P  = AllocateMatrix(M.height, N.width, 0);
+  
+  srand(52);
+
+
+  /* int errorM = 0, errorN = 0; */
+  /* if (argc == 2) { */
+  /*   M  = AllocateMatrix(TEST_SIZE, TEST_SIZE, 1); */
+  /*   N  = AllocateMatrix(M.width, M.height, 1); */
+  /*   P  = AllocateMatrix(M.height, N.width, 0); */
+  /* } else if(argc != 5 && argc != 4)  */
+  /*   { */
+  /*     // Allocate and initialize the matrices */
+  /*     M  = AllocateMatrix(rand() % 1024, rand() % 1024, 1); */
+  /*     N  = AllocateMatrix(M.width, rand() % 1024, 1); */
+  /*     P  = AllocateMatrix(M.height, N.width, 0); */
+  /*   } */
+  /* else */
+  /*   { */
+  /*     // Allocate and read in matrices from disk */
+  /*     int* params = NULL; //(int*)malloc(3 * sizeof(int)); */
+  /*     unsigned int data_read = 3; */
+  /*     cutReadFilei(argv[1], &params, &data_read, true); */
+  /*     if(data_read != 3){ */
+  /* 	printf("Error reading parameter file\n"); */
+  /* 	return 1; */
+  /*     } */
+
+  /*     M  = AllocateMatrix(params[0], params[1], 0); */
+  /*     N  = AllocateMatrix(params[1], params[2], 0);		 */
+  /*     P  = AllocateMatrix(params[0], params[2], 0); */
+  /*     errorM = ReadFile(&M, argv[2]); */
+  /*     errorN = ReadFile(&N, argv[3]); */
+  /*     if(errorM  || errorN ) */
+  /* 	{ */
+  /* 	  printf("Error reading input files %d, %d\n", errorM, errorN); */
+  /* 	  return 1; */
+  /* 	} */
+  /*   } */
 
   print_info(M, N);
   // M * N on the device
-  MatrixMulOnDevice(M, N, P);
+  MatrixMulOnDevice(M, N, P, type);
     
   printf("GPU computation complete\n");
   // compute the matrix multiplication on the CPU for comparison
@@ -144,14 +166,16 @@ int main(int argc, char** argv) {
   if(0 == res) {
     dumb_compare(reference, P);
   }
-  if(argc == 5)
-    {
-      WriteFile(P, argv[4]);
-    }
-  else if(argc == 2)
-    {
-      WriteFile(P, argv[1]);
-    }   
+
+/* no file output! */
+  /* if(argc == 5) */
+  /*   { */
+  /*     WriteFile(P, argv[4]); */
+  /*   } */
+  /* else if(argc == 2) */
+  /*   { */
+  /*     WriteFile(P, argv[1]); */
+  /*   }    */
 
   // Free matrices
   FreeMatrix(&M);
@@ -164,7 +188,7 @@ int main(int argc, char** argv) {
 ////////////////////////////////////////////////////////////////////////////////
 //! Run a simple test for CUDA
 ////////////////////////////////////////////////////////////////////////////////
-void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P)
+void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
 {
   // Load M and N to the device
   Matrix Md = AllocateDeviceMatrix(M);
@@ -183,10 +207,18 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P)
   dim3 dimGrid(P.height/TILE_WIDTH, P.width/TILE_WIDTH);
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
 
- 
   // Launch the device computation threads!
-  MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd) ;
-
+  switch (type) {
+  case 's':
+    MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+    break;
+  case 't':
+    MatrixMulKernelTiled<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+    break;
+  default:
+    printf("unknown type!!!!!!!!!!!!!!\n");
+    return;
+  }
   HANDLE_ERROR( cudaPeekAtLastError(), "launch");
   // Read P from the device
   CopyFromDeviceMatrix(P, Pd); 
@@ -237,6 +269,8 @@ Matrix AllocateMatrix(int height, int width, int init)
 // Copy a host matrix to a device matrix.
 void CopyToDeviceMatrix(Matrix Mdevice, const Matrix Mhost)
 {
+  /* we could zeropad to fixup non-sq matrices here? */
+
   int size = Mhost.width * Mhost.height * sizeof(float);
   Mdevice.height = Mhost.height;
   Mdevice.width = Mhost.width;
@@ -251,6 +285,7 @@ void CopyFromDeviceMatrix(Matrix Mhost, const Matrix Mdevice)
   int size = Mdevice.width * Mdevice.height * sizeof(float);
   cudaMemcpy(Mhost.elements, Mdevice.elements, size, 
 	     cudaMemcpyDeviceToHost);
+    /* we could remove zeropad to fixup non-sq matrices here? */
 }
 
 // Free a device matrix.
