@@ -207,6 +207,8 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
   dim3 dimGrid(P.height/TILE_WIDTH, P.width/TILE_WIDTH);
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
 
+  printf("launch configuration: grid (%d x %d) blocks grid (%d x %d)\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
+
   // Launch the device computation threads!
   switch (type) {
   case 's':
