@@ -47,7 +47,7 @@
 #include <cutil.h>
 
 // includes, kernels
-#include "matrixmul_kernel,h"
+#include "matrixmul_kernel.cu"
 
 ////////////////////////////////////////////////////////////////////////////////
 // declarations, forward
@@ -66,13 +66,13 @@ void FreeMatrix(Matrix* M);
 
 void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P);
 
-#define TEST_SIZE 1024
+#define TEST_SIZE 512
 
 void dumb_compare(Matrix a, Matrix b) {
   for(int i = 0; i < a.width ; i++)
     for(int j = 0; j < a.width ; j++) {
       if (abs (a.elements[i*a.width + j] - b.elements[i*a.width + j]) > TOLERANCE) {
-	printf("no match for (%d, %d) a=%f b=%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j]);
+	printf("no match for (%d, %d) a=%f b=%f \tdiff==%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j], abs(a.elements[i*a.width + j]- b.elements[i*a.width + j]));
       }
     }
 }
