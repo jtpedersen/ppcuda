@@ -89,6 +89,21 @@ void print_usage() {
   printf(" (s)imple, (t)iled, (T)extured\n");
 }
 
+void dump_matrix(const char *filename, Matrix M) {
+  FILE *f;
+  f = fopen(filename, "w");
+  for(int j = 0; j < M.height ; j++) {
+    for(int k = 0; k < M.width ; k++) {
+      int idx = j*M.width + k;
+      fprintf(f, "%f", M.elements[idx]);
+    }
+    fprintf(f, "\n");
+  }
+
+  fclose(f);
+
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
@@ -177,6 +192,11 @@ int main(int argc, char** argv) {
   /*   { */
   /*     WriteFile(P, argv[1]); */
   /*   }    */
+
+  /* dumb dump */
+  dump_matrix("M.txt", M);
+  dump_matrix("N.txt", N);
+  dump_matrix("P.txt", P);
 
   // Free matrices
   FreeMatrix(&M);
