@@ -60,55 +60,50 @@
 __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 {
 
- 	int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
-	int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
+  int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
+  int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
 
-	/* we shouldn't calculate these */
-	if (row >= P.height || col >= P.width)
-	  return;
+  /* we shouldn't calculate these */
+  if (row >= P.height || col >= P.width)
+    return;
 
-	float pvalue = 0;	
-	int w = M.width;
-	for(int k = 0; k < w ; ++k) {
-		pvalue += M.elements[row*w + k] * N.elements[k*w + col];
-	}
-	P.elements[row*w + col] = pvalue;
+  float pvalue = 0;	
+  int w = M.width;
+  for(int k = 0; k < w ; ++k) {
+    pvalue += M.elements[row*w + k] * N.elements[k*w + col];
+  }
+  P.elements[row*w + col] = pvalue;
 
 }
 
 // Matrix multiplication kernel thread specification
 __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
 {
-	__shared__ float Ms[TILE_WIDTH][TILE_WIDTH];
-	__shared__ float Ns[TILE_WIDTH][TILE_WIDTH];
+   __shared__ float Ms[TILE_WIDTH][TILE_WIDTH];
+   __shared__ float Ns[TILE_WIDTH][TILE_WIDTH];
 
-	int row = BY * TILE_WIDTH + TY;
-	int col = BX * TILE_WIDTH + TX;
-	/* we shouldn't calculate these */
-/* 	if (row >= P.height || col >= P.width) */
-	/* but cant return as we later call __syncthreads zeropadding !! */
-/* 	  return; */
+   int row = BY * TILE_WIDTH + TY;
+   int col = BX * TILE_WIDTH + TX;
 
-	float pvalue = 0;	
-	for(int m = 0; m < (int) ceil( 1.0f * W/TILE_WIDTH); ++m) {
-	  /* loading  with inline zero padding??*/
-	  if (m*TILE_WIDTH + TX >= P.height)
-	    Ms[TY][TX] = 0;
-	  else 
-	    Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
-	  if (m*TILE_WIDTH + TY >= P.width )
-	    Ns[TY][TX] = 0;
-	  else 
-	    Ns[TY][TX] = N.elements[(m*TILE_WIDTH + TY) * W + col];
+   float pvalue = 0;	
+   for(int m = 0; m < (int) ceil( 1.0f * W/TILE_WIDTH); ++m) {
 
-	  __syncthreads();
-	  for(int k = 0; k < TILE_WIDTH; ++k) {
-	    pvalue += Ms[TY][k] * Ns[k][TX];
-	  }
-	  __syncthreads();
+      /* loading  with inline zero padding??*/
+     if (row >= P.height || col >= P.width) {
+         Ns[TY][TX] =  Ms[TY][TX] = 0.0f;
+      } else {
+         Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
+         Ns[TY][TX] = N.elements[(m*TILE_WIDTH + TY) * W + col];
+      }
+      __syncthreads();
+      for(int k = 0; k < TILE_WIDTH; ++k) {
+         pvalue += Ms[TY][k] * Ns[k][TX];
+      }
+      __syncthreads();
 
-	}
-	P.elements[row*W + col] = pvalue;
+   }
+   if (row >= P.height || col >= P.width) return;
+   P.elements[row*P.width + col] = pvalue;
 }
 
 texture <float, 1> Mtex;
@@ -118,18 +113,18 @@ texture <float, 1> Ntex;
 __global__ void MatrixMulKernelTextured(Matrix M, Matrix N, Matrix P)
 {
 
-	int row = BY * TILE_WIDTH + TY;
-	int col = BX * TILE_WIDTH + TX;
-	/* we shouldn't calculate these */
-	if (row >= P.height || col >= P.width)
-	  return;
+  int row = BY * TILE_WIDTH + TY;
+  int col = BX * TILE_WIDTH + TX;
+  /* we shouldn't calculate these */
+  if (row >= P.height || col >= P.width)
+    return;
 
-	float pvalue = 0;	
-	int w = M.width;
-	for(int k = 0; k < w ; ++k) {
-	  pvalue += tex1Dfetch(Mtex, (float) (row*w + k)) * tex1Dfetch(Ntex, (float) (k*w + col));
-	}
-	P.elements[row*w + col] = pvalue;
+  float pvalue = 0;	
+  int w = M.width;
+  for(int k = 0; k < w ; ++k) {
+    pvalue += tex1Dfetch(Mtex, (float) (row*w + k)) * tex1Dfetch(Ntex, (float) (k*w + col));
+  }
+  P.elements[row*w + col] = pvalue;
 }
 
 

@@ -68,7 +68,6 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type);
 
 
 
-#define TEST_SIZE 32
 
 void dumb_compare(Matrix a, Matrix b) {
   for(int i = 0; i < a.width ; i++)
@@ -110,7 +109,7 @@ int main(int argc, char** argv) {
   size = atoi(argv[2]);
 
   M  = AllocateMatrix(size, size, 1);
-  N  = AllocateMatrix(M.width, M.height, 1);
+  N  = AllocateMatrix(M.width, M.height, 3);
   P  = AllocateMatrix(M.height, N.width, 0);
   
   srand(52);
@@ -257,6 +256,7 @@ Matrix AllocateDeviceMatrix(const Matrix M)
 //	If init == 0, initialize to all zeroes.  
 //	If init == 1, perform random initialization.
 //  If init == 2, initialize matrix parameters, but do not allocate memory 
+//if init == 3 Identity matrix
 Matrix AllocateMatrix(int height, int width, int init)
 {
   Matrix M;
@@ -271,12 +271,17 @@ Matrix AllocateMatrix(int height, int width, int init)
 		
   M.elements = (float*) malloc(size*sizeof(float));
 
-  for(unsigned int i = 0; i < M.height * M.width; i++)
-    {
-      M.elements[i] = (init == 0) ? (0.0f) : (rand() / (float)RAND_MAX);
-      M.elements[i] = ( M.elements[i] > TOLERANCE ) ? M.elements[i] : 0.0f ;
+  for(int j = 0; j < M.height ; j++) {
+    for(int k = 0; k < M.width ; k++) {
+      int i = j *M.width + k;
+      if (3 == init ) {
+	M.elements[i] = (j == k ) ? 1.0f : 0.0f;
+      } else {
+	M.elements[i] = (init == 0) ? (0.0f) : (rand() / (float)RAND_MAX);
+	M.elements[i] = ( M.elements[i] > TOLERANCE ) ? M.elements[i] : 0.0f ;
+      }
     }
-	
+  }
 
   return M;
 }	
