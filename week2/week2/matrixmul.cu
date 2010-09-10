@@ -100,7 +100,7 @@ void dump_matrix(const char *filename, Matrix M) {
   for(int j = 0; j < M.height ; j++) {
     for(int k = 0; k < M.width ; k++) {
       int idx = j*M.width + k;
-      fprintf(f, "%f", M.elements[idx]);
+      fprintf(f, "%1.3f ", M.elements[idx]);
     }
     fprintf(f, "\n");
   }
