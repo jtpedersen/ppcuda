@@ -64,7 +64,7 @@ void WriteFile(Matrix M, char* file_name);
 void FreeDeviceMatrix(Matrix* M);
 void FreeMatrix(Matrix* M);
 
-void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type);
+void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type, int repeats);
 
 
 
@@ -89,9 +89,10 @@ void print_info(Matrix M, Matrix N) {
 
 void print_usage() {
   printf("Default to  only square matrices!!\n");
-  printf(" [s, t, T] size  [r]\n");
+  printf(" [s, t, T] size  [r, S repeats]\n");
   printf(" (s)imple, (t)iled, (T)extured\n");
   printf(" r option andom dimensioned matrixes maximum size is the size option\n");
+  printf(" s option performs \"repeat\" calculations and times them \n");
 }
 
 void dump_matrix(const char *filename, Matrix M) {
@@ -104,9 +105,7 @@ void dump_matrix(const char *filename, Matrix M) {
     }
     fprintf(f, "\n");
   }
-
   fclose(f);
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -127,9 +126,26 @@ int main(int argc, char** argv) {
   }
   type = *argv[1];
   size = atoi(argv[2]);
+  char matrix_type = 's';
+  int repeats = 1;
+  char stats = 0;
 
+  if (argc >= 4) {
+    /* could be either r andom og S tats which are performed on sq matrices */
+    if ('S' == *argv[3]) {
+      matrix_type = 's';
+      repeats = atoi(argv[4]);
+      stats = 1;
+    } else {
+      matrix_type = 'r';
+    }
+    
+  }
   
-  if (4 == argc) {
+
+
+
+  if ('r' == matrix_type ) {
     /* random matrices */
     M  = AllocateMatrix(1+rand() % size, 1+rand() % size, 1); /* rand%size could be zero */
     N  = AllocateMatrix(M.width, 1+rand() % size, 1); 
@@ -142,78 +158,33 @@ int main(int argc, char** argv) {
   }
 
   srand(52);
-
-
-  /* int errorM = 0, errorN = 0; */
-  /* if (argc == 2) { */
-  /*   M  = AllocateMatrix(TEST_SIZE, TEST_SIZE, 1); */
-  /*   N  = AllocateMatrix(M.width, M.height, 1); */
-  /*   P  = AllocateMatrix(M.height, N.width, 0); */
-  /* } else if(argc != 5 && argc != 4)  */
-  /*   { */
-  /*     // Allocate and initialize the matrices */
-  /*     M  = AllocateMatrix(rand() % 1024, rand() % 1024, 1); */
-  /*     N  = AllocateMatrix(M.width, rand() % 1024, 1); */
-  /*     P  = AllocateMatrix(M.height, N.width, 0); */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     // Allocate and read in matrices from disk */
-  /*     int* params = NULL; //(int*)malloc(3 * sizeof(int)); */
-  /*     unsigned int data_read = 3; */
-  /*     cutReadFilei(argv[1], &params, &data_read, true); */
-  /*     if(data_read != 3){ */
-  /* 	printf("Error reading parameter file\n"); */
-  /* 	return 1; */
-  /*     } */
-
-  /*     M  = AllocateMatrix(params[0], params[1], 0); */
-  /*     N  = AllocateMatrix(params[1], params[2], 0);		 */
-  /*     P  = AllocateMatrix(params[0], params[2], 0); */
-  /*     errorM = ReadFile(&M, argv[2]); */
-  /*     errorN = ReadFile(&N, argv[3]); */
-  /*     if(errorM  || errorN ) */
-  /* 	{ */
-  /* 	  printf("Error reading input files %d, %d\n", errorM, errorN); */
-  /* 	  return 1; */
-  /* 	} */
-  /*   } */
-
+  
   print_info(M, N);
   // M * N on the device
-  MatrixMulOnDevice(M, N, P, type);
+  MatrixMulOnDevice(M, N, P, type, repeats);
     
   printf("GPU computation complete\n");
   // compute the matrix multiplication on the CPU for comparison
-  Matrix reference = AllocateMatrix(P.height, P.width, 0);
-  computeGold(reference.elements, M.elements, N.elements, M.height, M.width, N.width);
+  if (!stats) {  
+    Matrix reference = AllocateMatrix(P.height, P.width, 0);
+    computeGold(reference.elements, M.elements, N.elements, M.height, M.width, N.width);
         
-  printf("CPU computation complete\n");
-  // in this case check if the result is equivalent to the expected soluion
-  CUTBoolean res = cutComparefe(reference.elements, P.elements, 
-				P.height*P.width, TOLERANCE );
-  printf("Test %s\n", (1 == res) ? "PASSED" : "FAILED");
-  fflush(0);
-  if(0 == res) {
-    dumb_compare(reference, P);
-    /* dumb dump */
-    dump_matrix("M.txt", M);
-    dump_matrix("N.txt", N);
-    dump_matrix("P.txt", P);
-    /* who wants the results when they are correct? */
+    printf("CPU computation complete\n");
+    // in this case check if the result is equivalent to the expected soluion
+    CUTBoolean res = cutComparefe(reference.elements, P.elements, 
+				  P.height*P.width, TOLERANCE );
+    printf("Test %s\n", (1 == res) ? "PASSED" : "FAILED");
+    fflush(0);
+    if(0 == res) {
+      dumb_compare(reference, P);
+      /* dumb dump */
+      dump_matrix("M.txt", M);
+      dump_matrix("N.txt", N);
+      dump_matrix("P.txt", P);
+      /* who wants the results when they are correct? */
+    }
+    
   }
-
-/* no file output! */
-  /* if(argc == 5) */
-  /*   { */
-  /*     WriteFile(P, argv[4]); */
-  /*   } */
-  /* else if(argc == 2) */
-  /*   { */
-  /*     WriteFile(P, argv[1]); */
-  /*   }    */
-
-
   // Free matrices
   FreeMatrix(&M);
   FreeMatrix(&N);
@@ -225,7 +196,7 @@ int main(int argc, char** argv) {
 ////////////////////////////////////////////////////////////////////////////////
 //! Run a simple test for CUDA
 ////////////////////////////////////////////////////////////////////////////////
-void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
+void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type, int repeats)
 {
   // Load M and N to the device
   Matrix Md = AllocateDeviceMatrix(M);
@@ -242,37 +213,61 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
 
   /* the texture binding description */
   const cudaChannelFormatDesc desc = cudaCreateChannelDesc<float>();
+  if ('T' == type) {
+    cudaBindTexture( 0,&Mtex, Md.elements ,&desc, Md.width * Md.height * sizeof(float));
+    cudaBindTexture( 0,&Ntex, Nd.elements ,&desc, Nd.width * Nd.height * sizeof(float));
+  }
 
+
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
 
   // Setup the execution configuration
   dim3 dimGrid((int)ceil(1.0 * N.width/TILE_WIDTH), (int)ceil(1.0 * M.height/TILE_WIDTH));
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
 
   printf("launch configuration: Blocks (%d x %d) Threads pr block (%d x %d)\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
+  printf("will time %d execution(s) of ze kerne\n", repeats);
 
-  // Launch the device computation threads!
-  switch (type) {
-  case 's':
-    MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
-    break;
-  case 't':
-    MatrixMulKernelTiled<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
-    break;
-  case 'T':
-    cudaBindTexture( 0,&Mtex, Md.elements ,&desc, Md.width * Md.height * sizeof(float));
-    cudaBindTexture( 0,&Ntex, Nd.elements ,&desc, Nd.width * Nd.height * sizeof(float));
-    MatrixMulKernelTextured<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
-    cudaUnbindTexture(Mtex);
-    cudaUnbindTexture(Ntex);
-    break;
-  default:
-    printf("unknown type!!!!!!!!!!!!!!\n");
-    return;
+  for(int i=0; i < repeats; i++) {
+    cudaEventRecord(start, 0);
+
+  
+    // Launch the device computation threads!
+    switch (type) {
+    case 's':
+      MatrixMulKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+      break;
+    case 't':
+      MatrixMulKernelTiled<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+      break;
+    case 'T':
+      MatrixMulKernelTextured<<<dimGrid, dimBlock>>>(Md, Nd, Pd);
+      break;
+    default:
+      printf("unknown type!!!!!!!!!!!!!!\n");
+      return;
+    }
+
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    HANDLE_ERROR( cudaPeekAtLastError(), "launch");
+    float time;
+    cudaEventElapsedTime(&time, start, stop);
+    printf("%f\n", time);
   }
+
+
   HANDLE_ERROR( cudaPeekAtLastError(), "launch");
   // Read P from the device
   CopyFromDeviceMatrix(P, Pd); 
   HANDLE_ERROR( cudaPeekAtLastError(), "from device");
+  if ('T' == type) {
+    cudaUnbindTexture(Mtex);
+    cudaUnbindTexture(Ntex);
+  }
+
   // Free device matrices
   FreeDeviceMatrix(&Md);
   FreeDeviceMatrix(&Nd);
@@ -341,7 +336,7 @@ void CopyFromDeviceMatrix(Matrix Mhost, const Matrix Mdevice)
   int size = Mdevice.width * Mdevice.height * sizeof(float);
   cudaMemcpy(Mhost.elements, Mdevice.elements, size, 
 	     cudaMemcpyDeviceToHost);
-    /* we could remove zeropad to fixup non-sq matrices here? */
+  /* we could remove zeropad to fixup non-sq matrices here? */
 }
 
 // Free a device matrix.
