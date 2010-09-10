@@ -45,7 +45,7 @@ typedef struct {
     float* elements;
 } Matrix;
 
-#define TILE_WIDTH 16
+#define TILE_WIDTH 2
 #define TOLERANCE 0.001f
 
 #define HANDLE_ERROR(X, MSG) do { if (cudaSuccess != X) \
