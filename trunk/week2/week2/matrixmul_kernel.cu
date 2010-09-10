@@ -77,6 +77,28 @@ __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 
 }
 
+
+__device__
+float get_element(const Matrix A, int row, int col) {
+  if (row >= A.height || col >= A.width)
+    return 0.0f; 			/* tze tzero paddings */
+  return A.elements[row * A.pitch + col];
+}
+
+// Get the TILE_WIDTHxTILE_WIDTH sub-matrix Asub of A that is
+// located col sub-matrices to the right and row sub-matrices down
+// from the upper-left corner of A
+__device__
+Matrix get_submatrix(Matrix A, int row, int col) {
+  Matrix Asub;
+  /* ze corner cases */
+  Asub.width  = ( (col+1) * TILE_WIDTH  < A.width) ? TILE_WIDTH :  A.width - col * TILE_WIDTH;
+  Asub.height = ( (row+1) * TILE_WIDTH  < A.height) ? TILE_WIDTH : A.height - row * TILE_WIDTH;
+  Asub.pitch = A.pitch;
+  Asub.elements = &A.elements[A.pitch * TILE_WIDTH * row + TILE_WIDTH * col];
+  return Asub;
+}
+
 // Matrix multiplication kernel thread specification
 __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
 {
@@ -87,25 +109,27 @@ __global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
    int col = BX * TILE_WIDTH + TX;
 
    float pvalue = 0;	
-   for(int m = 0; m < (int) ceil( 1.0f * W/TILE_WIDTH); ++m) {
+   for(int m = 0; m < (int) ceil( 1.0f * M.width/TILE_WIDTH); ++m) {
+     Matrix Msub = get_submatrix(M, BY, m);
+     Matrix Nsub = get_submatrix(N, m, BX);
 
-      /* loading  with inline zero padding??*/
-     if (row >= P.height || col >= P.width) {
-         Ns[TY][TX] =  Ms[TY][TX] = 0.0f;
-      } else {
-         Ms[TY][TX] = M.elements[row * W + (m*TILE_WIDTH + TX)];
-         Ns[TY][TX] = N.elements[(m*TILE_WIDTH + TY) * W + col];
-      }
-      __syncthreads();
-      for(int k = 0; k < TILE_WIDTH; ++k) {
+     Ms[TY][TX] = get_element(Msub, TY, TX);
+     Ns[TY][TX] = get_element(Nsub, TY, TX);
+     
+     __syncthreads();
+     
+     for(int k = 0; k < TILE_WIDTH; ++k) {
          pvalue += Ms[TY][k] * Ns[k][TX];
-      }
-      __syncthreads();
-
+     }
+     __syncthreads();
+     
    }
    if (row >= P.height || col >= P.width) return;
    P.elements[row*P.width + col] = pvalue;
 }
+
+
+
 
 texture <float, 1> Mtex;
 texture <float, 1> Ntex;
