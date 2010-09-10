@@ -100,8 +100,8 @@ Matrix get_submatrix(Matrix A, int row, int col) {
 }
 
 // Matrix multiplication kernel thread specification
-__global__ void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P)
-{
+__global__
+void MatrixMulKernelTiled(Matrix M, Matrix N, Matrix P) {
    __shared__ float Ms[TILE_WIDTH][TILE_WIDTH];
    __shared__ float Ns[TILE_WIDTH][TILE_WIDTH];
 
@@ -135,10 +135,8 @@ texture <float, 1> Mtex;
 texture <float, 1> Ntex;
 
 // Matrix multiplication kernel thread specification
-__global__ void MatrixMulKernelTextured(Matrix M, Matrix N, Matrix P)
-{
-
-
+__global__
+void MatrixMulKernelTextured(Matrix M, Matrix N, Matrix P) {
 
   int row = BY * blockDim.y + TY;
   int col = BX * blockDim.x + TX;
