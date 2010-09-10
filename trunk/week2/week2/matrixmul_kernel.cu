@@ -51,6 +51,8 @@
 #define W (M.width)
 
 
+/* In general se pp 35 + in CUDA best practices (pedersen) */
+
 ////////////////////////////////////////////////////////////////////////////////
 //! Simple test kernel for device functionality
 //! @param g_idata  input data in global memory
@@ -60,19 +62,18 @@
 __global__ void MatrixMulKernel(Matrix M, Matrix N, Matrix P)
 {
 
-  int row = blockIdx.y * TILE_WIDTH + threadIdx.y;
-  int col = blockIdx.x * TILE_WIDTH + threadIdx.x;
+  int row = BY * blockDim.y + TY;
+  int col = BX * blockDim.x + TX;
 
   /* we shouldn't calculate these */
   if (row >= P.height || col >= P.width)
     return;
 
   float pvalue = 0;	
-  int w = M.width;
-  for(int k = 0; k < w ; ++k) {
-    pvalue += M.elements[row*w + k] * N.elements[k*w + col];
+  for(int k = 0; k < M.width ; ++k) {
+    pvalue += M.elements[row*M.width + k] * N.elements[k*N.width + col];
   }
-  P.elements[row*w + col] = pvalue;
+  P.elements[row*P.width + col] = pvalue;
 
 }
 
@@ -113,18 +114,21 @@ texture <float, 1> Ntex;
 __global__ void MatrixMulKernelTextured(Matrix M, Matrix N, Matrix P)
 {
 
-  int row = BY * TILE_WIDTH + TY;
-  int col = BX * TILE_WIDTH + TX;
+
+
+  int row = BY * blockDim.y + TY;
+  int col = BX * blockDim.x + TX;
+
   /* we shouldn't calculate these */
   if (row >= P.height || col >= P.width)
     return;
 
   float pvalue = 0;	
-  int w = M.width;
-  for(int k = 0; k < w ; ++k) {
-    pvalue += tex1Dfetch(Mtex, (float) (row*w + k)) * tex1Dfetch(Ntex, (float) (k*w + col));
+  for(int k = 0; k < M.width ; ++k) {
+    pvalue += tex1Dfetch(Mtex, (float) (row*M.width + k))
+      * tex1Dfetch(Ntex, (float) (k*N.width + col));
   }
-  P.elements[row*w + col] = pvalue;
+  P.elements[row*P.width + col] = pvalue;
 }
 
 

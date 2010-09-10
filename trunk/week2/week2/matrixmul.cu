@@ -70,23 +70,28 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type);
 
 
 void dumb_compare(Matrix a, Matrix b) {
+  FILE *f;
+  f = fopen("multiplication.log", "w");
   for(int i = 0; i < a.width ; i++)
     for(int j = 0; j < a.width ; j++) {
       float diff = a.elements[i*a.width + j] - b.elements[i*a.width + j];
       if ( abs(diff) > TOLERANCE) {
-	printf("no match for (%d, %d) a=%f b=%f \tdiff==%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j], diff);
+	fprintf(f, "no match for (%d, %d) a=%f b=%f \tdiff==%f\n", i, j, a.elements[i*a.width + j], b.elements[i*a.width + j], diff);
       }
     }
+  fclose(f);
+  printf("there were errors, please look at the multiplication.log file\n");
 }
 
 void print_info(Matrix M, Matrix N) {
-  printf("multiplying a (%d x %d) matrix with a (%d x %d) matrix\n", M.width, M.height,  N.width, N.height);
+  printf("multiplying a (%d x %d) matrix with a (%d x %d) matrix\n", M.height,  M.width, N.height, N.width);
 }
 
 void print_usage() {
-  printf("supports only square matrices!!\n");
-  printf(" [s, t, T] size \n");
+  printf("Default to  only square matrices!!\n");
+  printf(" [s, t, T] size  [r]\n");
   printf(" (s)imple, (t)iled, (T)extured\n");
+  printf(" r option andom dimensioned matrixes maximum size is the size option\n");
 }
 
 void dump_matrix(const char *filename, Matrix M) {
@@ -116,17 +121,26 @@ int main(int argc, char** argv) {
   int size;
   char type;
   /* a simple runner for testpurposes */
-  if (argc != 3) {
+  if (argc < 3) {
     print_usage();
     return 42;
   }
   type = *argv[1];
   size = atoi(argv[2]);
 
-  M  = AllocateMatrix(size, size, 1);
-  N  = AllocateMatrix(M.width, M.height, 3);
-  P  = AllocateMatrix(M.height, N.width, 0);
   
+  if (4 == argc) {
+    /* random matrices */
+    M  = AllocateMatrix(1+rand() % size, 1+rand() % size, 1); /* rand%size could be zero */
+    N  = AllocateMatrix(M.width, 1+rand() % size, 1); 
+    P  = AllocateMatrix(M.height, N.width, 0);  
+  } else {
+    /* square matrices */
+    M  = AllocateMatrix(size, size, 1);
+    N  = AllocateMatrix(M.width, M.height, 3);
+    P  = AllocateMatrix(M.height, N.width, 0);
+  }
+
   srand(52);
 
 
@@ -179,8 +193,14 @@ int main(int argc, char** argv) {
   CUTBoolean res = cutComparefe(reference.elements, P.elements, 
 				P.height*P.width, TOLERANCE );
   printf("Test %s\n", (1 == res) ? "PASSED" : "FAILED");
+  fflush(0);
   if(0 == res) {
     dumb_compare(reference, P);
+    /* dumb dump */
+    dump_matrix("M.txt", M);
+    dump_matrix("N.txt", N);
+    dump_matrix("P.txt", P);
+    /* who wants the results when they are correct? */
   }
 
 /* no file output! */
@@ -193,10 +213,6 @@ int main(int argc, char** argv) {
   /*     WriteFile(P, argv[1]); */
   /*   }    */
 
-  /* dumb dump */
-  dump_matrix("M.txt", M);
-  dump_matrix("N.txt", N);
-  dump_matrix("P.txt", P);
 
   // Free matrices
   FreeMatrix(&M);
@@ -229,10 +245,10 @@ void MatrixMulOnDevice(const Matrix M, const Matrix N, Matrix P, char type)
 
 
   // Setup the execution configuration
-  dim3 dimGrid((int)ceil(1.0 * P.height/TILE_WIDTH), (int)ceil(1.0 * P.width/TILE_WIDTH));
+  dim3 dimGrid((int)ceil(1.0 * N.width/TILE_WIDTH), (int)ceil(1.0 * M.height/TILE_WIDTH));
   dim3 dimBlock(TILE_WIDTH, TILE_WIDTH);
 
-  printf("launch configuration: grid (%d x %d) blocks grid (%d x %d)\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
+  printf("launch configuration: Blocks (%d x %d) Threads pr block (%d x %d)\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
 
   // Launch the device computation threads!
   switch (type) {
