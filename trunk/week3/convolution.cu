@@ -11,6 +11,13 @@
 #include <cuda_gl_interop.h>
 #include <cutil.h>
 
+
+#define STENCIL_WIDTH 3
+#define STENCIL_HEIGHT 3
+#define BLOCK_WIDTH 16
+#define BLOCK_HEIGHT 16
+
+
 #include "convolution_kernels.cu"
 
 extern "C" void initCuda(int argc, char **argv);
@@ -66,7 +73,7 @@ void process( int pbo_in, int pbo_out, int width, int height, float * host_stenc
 	delete tmp;
 */
 
-    dim3 dimBlock(16, 16, 1);
+    dim3 dimBlock(BLOCK_WIDTH, BLOCK_HEIGHT, 1);
     dim3 dimGrid(width / dimBlock.x, height / dimBlock.y, 1);
 
 	// Setup timing
@@ -74,7 +81,8 @@ void process( int pbo_in, int pbo_out, int width, int height, float * host_stenc
 	CUT_SAFE_CALL(cutStartTimer(timer));  
 
 	// Invoke kernel
-    cudaProcess<<< dimGrid, dimBlock >>>(in_data, out_data, width, height, device_stencil_data, kernel_width, kernel_height);
+	cudaProcessEx4<<< dimGrid, dimBlock >>>(in_data, out_data, width, height, device_stencil_data);
+/* 		cudaProcess<<< dimGrid, dimBlock >>>(in_data, out_data, width, height, device_stencil_data, kernel_width, kernel_height); */
 
 	// Report timing
 	cudaThreadSynchronize();
