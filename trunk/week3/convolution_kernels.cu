@@ -1,6 +1,4 @@
 
-
-
 // clamp x to range [a, b]
 __device__ float clamp(float x, float a, float b)
 {
@@ -109,7 +107,30 @@ cudaProcessEx3(int* g_data, int* g_odata, int imgw, int imgh, float * device_ste
   g_odata[y*imgw+x] = rgbToInt(rsum, gsum, bsum);
 }
 
+
+/* from NVIDEA sdk examples cudaprocessex */
+
+/*
+    2D convolution using shared memory
+    - operates on 8-bit RGB data stored in 32-bit int
+    - assumes kernel radius is less than or equal to block size
+    - not optimized for performance
+     _____________
+    |   :     :   |
+    |_ _:_____:_ _|
+    |   |     |   |
+    |   |     |   |
+    |_ _|_____|_ _|
+  r |   :     :   |
+    |___:_____:___|
+      r    bw   r
+    <----tilew---->
+*/
+
+
+
 #define CLAMP(X, MIN, MAX) ( (X > MAX) ? MAX : (X < MIN) ? MIN : X )
+#define DATA(X,Y) g_data[ CLAMP(Y, 0, imgw) *imgw + CLAMP(X,0,imgh)]
 
 __global__ void
 cudaProcessEx4(int* g_data, int* g_odata, int imgw, int imgh, float * device_stencil_data)
@@ -131,32 +152,48 @@ cudaProcessEx4(int* g_data, int* g_odata, int imgw, int imgh, float * device_ste
   if (tx < STENCIL_WIDTH && ty < STENCIL_HEIGHT )
     s_stencil[ty][tx] = device_stencil_data[ty*STENCIL_WIDTH + tx];
   /* read ze tile */
+
+  tile[ty+1][tx+1] = DATA(x, y);
+
+  //borders
+  if(tx == 0) {
+    // left
+    tile[ty+1][0] = DATA( x-1, y);
+    // right
+    tile[ty+1][BLOCK_WIDTH+1] = DATA(x+BLOCK_WIDTH+1, y);
+  }
+  if (ty == 0) {
+    // top
+    tile[ty][tx+1] = DATA(x, y-1);
+    // bottom
+    tile[BLOCK_HEIGHT+1][tx+1] = DATA(x, y+BLOCK_HEIGHT+1);
+  }
   
-  /* x :  CLAMP( blockIdx.x * blockDim.x + (tx-1), 0, imgw)  */
-  /* y :  CLAMP( blockIdx.y * blockDim.y + (ty-1), 0, imgh)  */
-  tile[ty][tx] = g_data[ (y-1) * imgw + x-1];
-
-
-  if (ty < 2) 
-    tile[ty+BLOCK_HEIGHT][BLOCK_WIDTH] = g_data[(y+2) *imgw + x];
-  if (tx < 2) 
-    tile[BLOCK_HEIGHT][tx+BLOCK_WIDTH] = g_data[ y *imgw + x+2];
+  // load corners
+  if ((tx == 0 ) && (ty == 0)) {
+    // tl
+    tile[0][0] = DATA(x-1, y-1);
+    // bl
+    tile[BLOCK_HEIGHT+1][0] = DATA(x-1, y+BLOCK_HEIGHT+1);
+    // tr
+    tile[0][BLOCK_WIDTH+1] = DATA(x+BLOCK_WIDTH+1, y-1);
+    // br
+    tile[BLOCK_HEIGHT+1][BLOCK_WIDTH+1] = DATA(x+BLOCK_WIDTH+1, y+BLOCK_HEIGHT+1);
+  }
+  
 
   __syncthreads();
-    
 
+  for(int dy=-1; dy <= 1; dy++) {
+    for(int dx=-1; dx <= 1 ; dx++) {
 
-
-  for(int dy=-(STENCIL_HEIGHT-1)/2 ; dy <= (STENCIL_HEIGHT-1)/2; dy++) {
-    for(int dx=-(STENCIL_WIDTH-1)/2; dx <= (STENCIL_WIDTH-1)/2; dx++) {
-
-      int pixel = tile[ty+dy+1][tx+dx+1];
+      int pixel = tile[1+ty+dy][1+tx+dx];
 
       float r = float(pixel&0xff);
       float g = float((pixel>>8)&0xff);
       float b = float((pixel>>16)&0xff);
 
-      float stencil_value =   (dy==0 && dx==0) ? 1.0f : 0.0f; // s_stencil[dy][dx];
+      float stencil_value =  s_stencil[1+dy][1+dx];
 
       rsum += r*stencil_value;
       gsum += g*stencil_value;
