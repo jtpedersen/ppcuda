@@ -11,6 +11,13 @@ ifeq ($(debug),1)
  NVCCFLAGS += -G
 endif
 
+
+ifeq ($(emu),1) 
+ NVCCFLAGS += -deviceemu
+endif
+
+
+
 ifeq ($(release),1) 
  COMMONFLAGS += -O2
  COMMONFLAGS += -DNDEBUG
@@ -59,8 +66,8 @@ $(BUILDDIR)/%.cu.o:$(SRCDIR)/%.cu
 $(BUILDDIR)/%.cpp.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-week3: $(BUILD_OBJS) Makefile
+week3: clean $(BUILD_OBJS) Makefile 
 	$(LINKLINE) -o$(BINDIR)/$(EXEC)
 
 clean:
-	rm $(BUILDDIR)/*.o $(BINDIR)/$(EXEC)
+	rm -f $(BUILDDIR)/*.o $(BINDIR)/$(EXEC)
