@@ -130,6 +130,7 @@ cudaProcessEx3(int* g_data, int* g_odata, int imgw, int imgh, float * device_ste
 
 
 #define CLAMP(X, MIN, MAX) ( (X > MAX) ? MAX : (X < MIN) ? MIN : X )
+
 #define DATA(X,Y) g_data[ CLAMP(Y, 0, imgw) *imgw + CLAMP(X,0,imgh)]
 
 __global__ void
@@ -203,3 +204,137 @@ cudaProcessEx4(int* g_data, int* g_odata, int imgw, int imgh, float * device_ste
 
   g_odata[y*imgw+x] = rgbToInt(rsum, gsum, bsum);
 }
+
+texture <uchar4, 1> in_tex;
+#define TEX1D(X,Y) ( (CLAMP(Y, 0, imgw) *imgw) + CLAMP(X,0,imgh))
+__global__ void
+cudaProcessEx5(int* g_data, int* g_odata, int imgw, int imgh, float * device_stencil_data)
+{
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int bw = blockDim.x;
+  int bh = blockDim.y;
+  int x = blockIdx.x*bw + tx;
+  int y = blockIdx.y*bh + ty;
+
+  // perform convolution
+  float rsum = 0.0;
+  float gsum = 0.0;
+  float bsum = 0.0;
+
+  /* sharemem for stencil */
+  __shared__ float s_stencil[STENCIL_HEIGHT][STENCIL_WIDTH];
+
+
+  if (tx < STENCIL_WIDTH && ty < STENCIL_HEIGHT )
+    s_stencil[ty][tx] = device_stencil_data[ty*STENCIL_WIDTH + tx];
+  __syncthreads();
+
+  for(int dy=0; dy<STENCIL_HEIGHT; dy++) {
+    for(int dx=0; dx<STENCIL_WIDTH; dx++) {
+
+      uchar4 p = tex1Dfetch(in_tex, (float)  TEX1D(x+dx-(STENCIL_WIDTH-1)/2, y+dy-(STENCIL_HEIGHT-1)/2));
+
+
+      float r = float(p.x);
+      float g = float(p.y);
+      float b = float(p.z);
+
+      float stencil_value = s_stencil[dy][dx];
+
+      rsum += r*stencil_value;
+      gsum += g*stencil_value;
+      bsum += b*stencil_value;
+    }
+  }
+
+  g_odata[y*imgw+x] = rgbToInt(rsum, gsum, bsum);
+}
+
+
+texture <uchar4, 2> in2d_tex;
+
+__global__ void
+cudaProcessEx6(int* g_data, int* g_odata, int imgw, int imgh, float * device_stencil_data)
+{
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int bw = blockDim.x;
+  int bh = blockDim.y;
+  int x = blockIdx.x*bw + tx;
+  int y = blockIdx.y*bh + ty;
+
+  // perform convolution
+  float rsum = 0.0;
+  float gsum = 0.0;
+  float bsum = 0.0;
+
+  /* sharemem for stencil */
+  __shared__ float s_stencil[STENCIL_HEIGHT][STENCIL_WIDTH];
+
+
+  if (tx < STENCIL_WIDTH && ty < STENCIL_HEIGHT )
+    s_stencil[ty][tx] = device_stencil_data[ty*STENCIL_WIDTH + tx];
+  __syncthreads();
+
+  for(int dy=0; dy<STENCIL_HEIGHT; dy++) {
+    for(int dx=0; dx<STENCIL_WIDTH; dx++) {
+
+      uchar4 p = tex2D(in2d_tex, (float) (x+dx-(STENCIL_WIDTH-1)/2),(float) (y+dy-(STENCIL_HEIGHT-1)/2));
+
+
+      float r = float(p.x);
+      float g = float(p.y);
+      float b = float(p.z);
+
+      float stencil_value = s_stencil[dy][dx];
+
+      rsum += r*stencil_value;
+      gsum += g*stencil_value;
+      bsum += b*stencil_value;
+    }
+  }
+
+  g_odata[y*imgw+x] = rgbToInt(rsum, gsum, bsum);
+}
+
+
+
+
+__constant__ float d_stencil[9];
+__global__ void
+cudaProcessEx7(int* g_data, int* g_odata, int imgw, int imgh, float * device_stencil_data)
+{
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int bw = blockDim.x;
+  int bh = blockDim.y;
+  int x = blockIdx.x*bw + tx;
+  int y = blockIdx.y*bh + ty;
+
+  // perform convolution
+  float rsum = 0.0;
+  float gsum = 0.0;
+  float bsum = 0.0;
+
+  for(int dy=0; dy<STENCIL_HEIGHT; dy++) {
+    for(int dx=0; dx<STENCIL_WIDTH; dx++) {
+
+      uchar4 p = tex2D(in2d_tex, (float) (x+dx-(STENCIL_WIDTH-1)/2),(float) (y+dy-(STENCIL_HEIGHT-1)/2));
+
+
+      float r = float(p.x);
+      float g = float(p.y);
+      float b = float(p.z);
+
+      float stencil_value = d_stencil[dy*STENCIL_WIDTH +dx];
+
+      rsum += r*stencil_value;
+      gsum += g*stencil_value;
+      bsum += b*stencil_value;
+    }
+  }
+
+  g_odata[y*imgw+x] = rgbToInt(rsum, gsum, bsum);
+}
+
