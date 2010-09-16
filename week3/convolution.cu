@@ -33,6 +33,7 @@ void initCuda(int argc, char **argv)
 }
 
 
+
 ////////////////////////////////////////////////////////////////////////////////
 //! Run the Cuda part of the computation
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,6 +74,19 @@ void process( int pbo_in, int pbo_out, int width, int height, float * host_stenc
 	delete tmp;
 */
 
+
+
+    /* texture */
+    /* the texture binding description */
+    const cudaChannelFormatDesc desc = cudaCreateChannelDesc<uchar4>();
+    cudaBindTexture( 0,&in_tex, in_data ,&desc, width*height*sizeof(int));
+
+
+    cudaBindTexture2D( 0,&in2d_tex, in_data ,&desc, width, height, width*sizeof(uchar4));
+
+    cudaMemcpyToSymbol(d_stencil, host_stencil_data, 9 * sizeof(float), 0, cudaMemcpyHostToDevice);
+
+
     dim3 dimBlock(BLOCK_WIDTH, BLOCK_HEIGHT, 1);
     dim3 dimGrid(width / dimBlock.x, height / dimBlock.y, 1);
 
@@ -81,7 +95,7 @@ void process( int pbo_in, int pbo_out, int width, int height, float * host_stenc
 	CUT_SAFE_CALL(cutStartTimer(timer));  
 
 	// Invoke kernel
-	cudaProcessEx4<<< dimGrid, dimBlock >>>(in_data, out_data, width, height, device_stencil_data);
+	cudaProcessEx7<<< dimGrid, dimBlock >>>(in_data, out_data, width, height, device_stencil_data);
 /* 		cudaProcess<<< dimGrid, dimBlock >>>(in_data, out_data, width, height, device_stencil_data, kernel_width, kernel_height); */
 
 	// Report timing
@@ -107,6 +121,8 @@ void process( int pbo_in, int pbo_out, int width, int height, float * host_stenc
 
     CUDA_SAFE_CALL(cudaGLUnmapBufferObject( pbo_in));
     CUDA_SAFE_CALL(cudaGLUnmapBufferObject( pbo_out));
+
+    cudaUnbindTexture(in_tex);
 
 	cudaFree(device_stencil_data);
 
