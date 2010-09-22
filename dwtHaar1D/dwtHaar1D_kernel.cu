@@ -62,6 +62,8 @@
 * Device Code.
 */
 
+#include "dwtHaar1D.h"
+
 #ifndef _DWTHAAR1D_KERNEL_H_
 #define _DWTHAAR1D_KERNEL_H_
 

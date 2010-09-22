@@ -46,8 +46,7 @@ LIB_CUDA := -L$(CUDA_INSTALL_PATH)/lib -lcudart #cuda api runtime
 LIB_CUDA += -L../lib -lcutil_i386    #cutil
 LIB_CUDA += -lGL -lGLU -lGLEW -lglut #glut mm
 
-OBJS =  dwtHaar1D.cu
-EXEC = dwt
+OBJS =  dwtHaar1D.cu dwt1d_main.cpp
 
 BUILD_OBJS =$(addprefix $(BUILDDIR)/, $(addsuffix .o, $(OBJS)))
 LINKLINE = $(LINK) $(BUILD_OBJS) $(LIB_CUDA)
@@ -65,8 +64,8 @@ $(BUILDDIR)/%.cu.o:$(SRCDIR)/%.cu
 $(BUILDDIR)/%.cpp.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-dwt1d: clean $(BUILD_OBJS) Makefile 
-	$(LINKLINE) -o$(BINDIR)/$(EXEC)
+dwt1d: clean $(BUILD_OBJS) 
+	$(LINKLINE) -o$(BINDIR)/dwt
 
 clean:
-	rm -f $(BUILDDIR)/*.o $(BINDIR)/$(EXEC) *~
+	rm -f $(BUILDDIR)/*.o $(BINDIR)/dwt *~
