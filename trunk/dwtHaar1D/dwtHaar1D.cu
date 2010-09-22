@@ -76,31 +76,10 @@
 //#include <cutil_inline.h>
 #include <cutil_inline.h>
 
-// constants which are used in host and device code
-#define             INV_SQRT_2      0.70710678118654752440f;
-const unsigned int  LOG_NUM_BANKS = 4;
-const unsigned int  NUM_BANKS     = 16;
-
 ////////////////////////////////////////////////////////////////////////////////
 // includes, kernels
 #include <dwtHaar1D_kernel.cu>
 
-////////////////////////////////////////////////////////////////////////////////
-// declaration, forward
-void runTest( int argc, char** argv);
-CUTBoolean  getLevels( unsigned int len, unsigned int* levels);
-
-////////////////////////////////////////////////////////////////////////////////
-// Program main
-////////////////////////////////////////////////////////////////////////////////
-int 
-main( int argc, char** argv) 
-{
-    // run test
-    runTest( argc, argv);
-
-    cutilExit(argc, argv);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Perform the wavelet decomposition
@@ -231,7 +210,7 @@ runTest( int argc, char** argv)
         // decomposition can be performed at once
         block_size.x = num_threads_total_left;   
         approx_is_input = 0;
-}
+    }
     else 
     {
         // 512 threads per block
