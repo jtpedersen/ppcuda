@@ -46,7 +46,7 @@ LIB_CUDA := -L$(CUDA_INSTALL_PATH)/lib -lcudart #cuda api runtime
 LIB_CUDA += -L../lib -lcutil_i386    #cutil
 LIB_CUDA += -lGL -lGLU -lGLEW -lglut #glut mm
 
-OBJS =  dwtHaar1D.cu dwt1d_main.cpp
+OBJS =  dwtHaar1D.cu dwt1d_main.cpp dwtImg.cu
 
 BUILD_OBJS =$(addprefix $(BUILDDIR)/, $(addsuffix .o, $(OBJS)))
 LINKLINE = $(LINK) $(BUILD_OBJS) $(LIB_CUDA)
