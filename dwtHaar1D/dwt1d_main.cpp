@@ -11,6 +11,8 @@
 #include <cutil_inline.h>
 
 #include "dwtHaar1D.h"
+#include "dwtImg.h"
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -19,8 +21,14 @@
 int 
 main( int argc, char** argv) 
 {
-    // run test
-    runTest( argc, argv);
+  if (argc != 2) 
+    printf("give a filename\n");
 
-    cutilExit(argc, argv);
+    test_img(argv[1]);
+
+  //    runTest( argc, argv);
+
+    // cutilExit(argc, argv);
+
+    return 0;
 }
