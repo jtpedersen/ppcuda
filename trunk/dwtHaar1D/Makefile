@@ -64,7 +64,7 @@ $(BUILDDIR)/%.cu.o:$(SRCDIR)/%.cu
 $(BUILDDIR)/%.cpp.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-dwt1d: clean $(BUILD_OBJS) 
+dwt1d:  $(BUILD_OBJS) 
 	$(LINKLINE) -o$(BINDIR)/dwt
 
 clean:
