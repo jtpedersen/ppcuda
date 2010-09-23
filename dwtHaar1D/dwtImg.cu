@@ -21,11 +21,12 @@
 
 
 __device__
-void decompositionStep(float *C, float *out) {
-  unsigned int half_step = blockDim.x; 
+void decompositionStep(float *C, float *out, int half_step) {
   unsigned int id = threadIdx.x;
-  int offset = blockIdx.y * 1024 ;
+  if (id>half_step)
+    return;
 
+  int offset = blockIdx.y * 1024 ;
   out[offset + id] =             ( C[offset + 2 * id] + C[offset + 2*id+1]) * INV_SQRT_2;
   out[offset + id + half_step] = ( C[offset + 2 * id] - C[offset + 2*id+1]) * INV_SQRT_2;
 }
@@ -33,37 +34,56 @@ void decompositionStep(float *C, float *out) {
 
 
 __device__
-void recomposeStep(float *D, float *out) {
-  unsigned int half_step = blockDim.x; 
+void recomposeStep(float *D, float *out, int half_step, int level) {
   unsigned int id = threadIdx.x;
-  int offset = blockIdx.y * 1024 ;
-  float data0 = D[offset + id]; /* coarse */
-  float data1 = D[offset + id + half_step]; /* detail */
-  out[offset + 2*id] = (data0 - data1 );
-  out[offset + 2*id+1] = (data0 + data1 );
+  if ( id > half_step)
+    return;
+
+  int offset = blockIdx.y * 1024;
+  float coarse = D[offset + id]; 
+  float detail = D[offset + id + half_step];
+
+  out[offset + 2 * id] = (coarse + detail );
+  out[offset + 2 * id + 1] = (coarse - detail );
+
+
+
 }
 
 
 __global__
-void recompose(float *D, float * out) {
-  recomposeStep(D, out);
+void recompose(float *D, float * out, int levels) {
+  unsigned int half_step = blockDim.x>>levels;
+
+  for (int i=0; i < levels; i++) {
+    half_step <<= 1;
+    recomposeStep(D, out, half_step, i);
+    D = out;    
+    __syncthreads();
+  }
+
 }
   
 
 
 
 __global__
-void decomposition(float *C, float * out, int level) {
+void decomposition(float *C, float * out, int levels) {
   unsigned int id = threadIdx.x;
   unsigned int half_step = blockDim.x;
   int offset = blockIdx.y * 1024 ;
-
+  /* normalize dataset */
   C[offset + id] *= INV_SQRT_2;
   C[offset + id + half_step] *= INV_SQRT_2;
-
+  
   __syncthreads();
-
-    decompositionStep(C, out);
+  
+  for (int i=0; i < levels; i++) {
+    decompositionStep(C, out, half_step);
+    C = out;
+    half_step >>= 1; 		/* div 2 */
+    __syncthreads();
+  }
 }
 
 
@@ -125,7 +145,7 @@ void test_img(const char* file) {
   to_grayscale_floats<<< grid, block>>>(int_image, img_data, img_w * img_h);
   from_grayscale_floats_to_ppm("original.ppm", img_data, img_w, img_h);
 
-
+  int levels = 1;
 
   // 2D signal so the arrangement of elements is also 2D
   dim3  block_size;
@@ -136,7 +156,7 @@ void test_img(const char* file) {
   grid_size.y = 1024;		/* corresponding to cols */
 
   // run kernel
-  decomposition<<<grid_size, block_size >>>( img_data, d_odata, 42);  
+  decomposition<<<grid_size, block_size >>>( img_data, d_odata, levels);  
 
 
   //from grayscale
@@ -144,7 +164,7 @@ void test_img(const char* file) {
 
   /* recompose */
   cutilSafeCall( cudaMemcpy(img_data, d_odata, smem_size, cudaMemcpyDeviceToDevice) );
-  recompose<<<grid_size, block_size >>>( img_data, d_odata);  
+  recompose<<<grid_size, block_size >>>( img_data, d_odata, levels);  
 
   //from grayscale
   from_grayscale_floats_to_ppm("recomposed.ppm", d_odata, img_w, img_h);
