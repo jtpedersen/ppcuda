@@ -4,6 +4,8 @@
 void test_img(const char* file);
 
 
+void from_grayscale_floats_to_ppm(const char *filename, float *d_odata, int img_w, int img_h);
+
 __global__
 void simple_copy_kernel(int *in, int *out);
 
