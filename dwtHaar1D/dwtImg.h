@@ -34,7 +34,7 @@ dwtHaar2D( float* id, float* od, float* approx_final,
 
 
 __device__
-void recomposeStep(float *D, float *out, int half_step, int level);
+void recomposeStep(float *D, float *out, int half_step);
 __global__
 void recompose(float *D, float * out, int levels);
 __global__
