@@ -21,10 +21,11 @@
 int 
 main( int argc, char** argv) 
 {
-  if (argc != 2) 
-    printf("give a filename\n");
+  if (argc != 3) {
+    printf("give a filename an d no of levels\n");
+  }
 
-    test_img(argv[1]);
+  test_img(argv[1], atoi(argv[2]));
 
   //    runTest( argc, argv);
 

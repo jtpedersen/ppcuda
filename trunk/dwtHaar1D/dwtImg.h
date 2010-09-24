@@ -1,7 +1,7 @@
 #ifndef DWTIMG_H_
 #define DWTIMG_H_
 
-void test_img(const char* file);
+void test_img(const char* file, int);
 
 
 void from_grayscale_floats_to_ppm(const char *filename, float *d_odata, int img_w, int img_h);
