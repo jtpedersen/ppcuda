@@ -18,37 +18,21 @@
 
 
 
-__device__
-void decompositionStep(float *C, float *out, int half_step) {
-  unsigned int id = threadIdx.x;
-  int offset;
-  float data0; 
-  float data1;
-  
-  
-  if (id < half_step) {
-    offset = blockIdx.y * 1024 ;
-    data0 = C[offset + 2 * id]; 
-    data1 = C[offset + 2 * id + 1];
-  }
-  __syncthreads(); 
-  
-  if (id < half_step) {
-    out[offset + id] =             (data0 + data1) * INV_SQRT_2;
-    out[offset + id + half_step] = (data0 - data1) * INV_SQRT_2;
-  }
-  __syncthreads(); 
-}
-
 
 
 __device__
 void recomposeStep(float *D, float *out, int half_step, int level) {
   unsigned int id = threadIdx.x;
+  int offset;
+  float coarse; 
+  float detail; 
   if (id < half_step) {
-    int offset = blockIdx.y * 1024;
-    float coarse = D[offset + id]; 
-    float detail = D[offset + id + half_step];
+    offset = blockIdx.y * 1024;
+    coarse = D[offset + id]; 
+    detail = D[offset + id + half_step];
+  }
+  __syncthreads();
+  if (id < half_step) {
     out[offset + 2 * id] = (coarse + detail )*INV_SQRT_2;
     out[offset + 2 * id + 1] = (coarse - detail )*INV_SQRT_2;
   } 
@@ -61,8 +45,6 @@ void recomposeStep(float *D, float *out, int half_step, int level) {
 __global__
 void recompose(float *D, float * out, int levels) {
   unsigned int half_step = 2 * blockDim.x>>levels;
-  unsigned int id = threadIdx.x;
-  int offset = blockIdx.y * 1024 ;
   for (int i=0; i < levels; i++) {
     recomposeStep(D, out, half_step, i);
     half_step <<= 1;
@@ -92,12 +74,115 @@ void decomposition(float *C, float * out, int levels) {
 }
 
 
+__device__
+void decompositionStep(float *C, float *out, int half_step) {
+  unsigned int id = threadIdx.x;
+  int offset;
+  float data0; 
+  float data1;
+  
+  
+  if (id < half_step) {
+    offset = blockIdx.y * 1024 ;
+    data0 = C[offset + 2 * id]; 
+    data1 = C[offset + 2 * id + 1];
+  }
+  __syncthreads(); 
+  
+  if (id < half_step) {
+    out[offset + id] =             (data0 + data1) * INV_SQRT_2;
+    float detail = (data0 - data1) * INV_SQRT_2;
+    out[offset + id + half_step] = (fabs(detail) > 0.0f )? detail : 0.0f;
+    /* possible clamp place */
+/*     if (out[offset + id + half_step] > 1.5f) */
+/*       out[offset + id + half_step] = 0.0f; */
+  }
+  __syncthreads(); 
+}
+
+
+
+void simple_decompose(float *d_idata, float *d_odata, int levels) {
+  // 2D signal so the arrangement of elements is also 2D
+  dim3  block_size;
+  dim3  grid_size;  
+
+  block_size.x = 512;
+  grid_size.x = 1; 		/* one row */
+  grid_size.y = 1024;		/* corresponding to cols */
+
+
+
+  // run kernel
+  decomposition<<<grid_size, block_size >>>(d_idata, d_odata, levels);  
+
+}
+
+void simple_recompose(float *d_idata, float *d_odata, int levels) {
+  // 2D signal so the arrangement of elements is also 2D
+  dim3  block_size;
+  dim3  grid_size;  
+
+  block_size.x = 512;
+  grid_size.x = 1; 		/* one row */
+  grid_size.y = 1024;		/* corresponding to number of rows */
+
+  recompose<<<grid_size, block_size >>>( d_idata, d_odata, levels);  
+
+}
+
+
+void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, int img_h) {
+
+  // 2D signal so the arrangement of elements is also 2D
+  dim3  block_size;
+  dim3  grid_size;  
+
+  block_size.x = img_w/2;
+  grid_size.x = 1; 		/* one row */
+  grid_size.y = 1; //img_h;		/* corresponding to number of rows */
+
+
+  /* smemsize */
+  int smem_size = img_h * img_w * sizeof(float);
+
+
+  /* approx_final */
+  float *approx_final;
+  cutilSafeCall( cudaMalloc( (void**) &approx_final, smem_size));
+
+  // double the number of threads as bytes
+  unsigned int mem_shared = (2 * block_size.x) * sizeof( float);
+  // extra memory requirements to avoid bank conflicts
+  mem_shared += ((2 * block_size.x) / NUM_BANKS) * sizeof( float);
+
+
+  
+/*   from_grayscale_floats_to_ppm("d_idata.ppm", d_idata, img_w, img_h); */
+
+  // run kernel
+  dwtHaar1D<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
+						     approx_final,
+						     levels,
+						     512,
+						     block_size.x );
+  
+  from_grayscale_floats_to_ppm("d_odata.ppm", d_odata, img_w, img_h);
+  from_grayscale_floats_to_ppm("approx_final.ppm", approx_final, img_w, img_h);
+
+  cutilSafeCall (cudaMemcpy (d_odata, approx_final, smem_size,
+			     cudaMemcpyDeviceToDevice) );
+
+  cutilSafeCall(cudaFree(approx_final));
+
+
+}
+
+
+
+
 /* something quick and dirty */
 void test_img(const char* file, int levels) {
- 
-  /*   showIds(2, 4); */
-
-  /*   return; */
 
 
   unsigned char *data;
@@ -141,26 +226,21 @@ void test_img(const char* file, int levels) {
   free( tmp);
 
 
-
   //to grayscale
   dim3 grid, block;
   block.x = 512;
   grid.x = (img_h *img_w)/block.x;
 
   to_grayscale_floats<<< grid, block>>>(int_image, img_data, img_w * img_h);
+  /* output original as grayscale */
   from_grayscale_floats_to_ppm("original.ppm", img_data, img_w, img_h);
 
 
-  // 2D signal so the arrangement of elements is also 2D
-  dim3  block_size;
-  dim3  grid_size;  
 
-  block_size.x = 512;
-  grid_size.x = 1; 		/* one row */
-  grid_size.y = 1024;		/* corresponding to cols */
+   simple_decompose(img_data, d_odata, levels); 
 
-  // run kernel
-  decomposition<<<grid_size, block_size >>>( img_data, d_odata, levels);  
+/*   optimized_decompose(img_data, d_odata, levels, img_w, img_h); */
+
 
 
   //from grayscale
@@ -168,7 +248,8 @@ void test_img(const char* file, int levels) {
 
   /* recompose */
   cutilSafeCall( cudaMemcpy(img_data, d_odata, smem_size, cudaMemcpyDeviceToDevice) );
-  recompose<<<grid_size, block_size >>>( img_data, d_odata, levels);  
+  simple_recompose(img_data, d_odata, levels);
+
 
   //from grayscale
   from_grayscale_floats_to_ppm("recomposed.ppm", d_odata, img_w, img_h);
@@ -204,52 +285,22 @@ void from_grayscale_floats(float *in, int* out, int size) {
   if (tid >= size)
     return;
   float p = in[tid];
-  p = max(min(255.0f, p), 0.0f);
-  unsigned char val = (unsigned char) p;
-  int pixel = val << 16 | val << 8 | val;
+  int pixel;
+  if (p < 0.0f) {
+    p *= -1.0f;
+    p = max(min(255.0f, p), 0.0f);
+    unsigned char val = (unsigned char) p;
+     pixel = val;
+
+  } else {
+    p = max(min(255.0f, p), 0.0f);
+    unsigned char val = (unsigned char) p;
+     pixel = val << 16 | val << 8 | val;
+  }
   out[tid] = pixel;
 
 }
 
-
-
-__global__
-void simple_copy_kernel(int *in, int *out) {
-  const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  out[tid] = in[(tid%1025)];
-}
-
-
-void from_grayscale_floats_to_ppm(const char *filename, float *d_odata, int img_w, int img_h) {
-
-  int img_size = (img_h *img_w);
-  int mem_size = img_size*sizeof(int);
-  dim3 block, grid;
-
-  block.x = 512;
-  grid.x = img_size/block.x;
- 
-
-
-  int *int_image, *data;
-  cutilSafeCall( cudaMalloc( (void**) &int_image, mem_size));
-  data = (int*) malloc(sizeof(int) * img_size);
-
-  from_grayscale_floats<<< grid, block>>>(d_odata, int_image ,img_w * img_h);
-  HANDLE_ERROR(cudaPeekAtLastError(), "after from grayscale");
-
-
-  /* copy result back */
-  cutilSafeCall( cudaMemcpy(data, int_image, mem_size , cudaMemcpyDeviceToHost) );
-
-  /* write result out */
-  cutSavePPM4ub(filename, (unsigned char*) data, img_w, img_h);
-
-  /* free stuff */
-  free(data);
-  cutilSafeCall( cudaFree(int_image));
-
-}
 
 __global__ void 
 dwtHaar2D( float* id, float* od, float* approx_final, 
@@ -257,25 +308,26 @@ dwtHaar2D( float* id, float* od, float* approx_final,
 	   const unsigned int slength_step_half,
 	   const int bdim ) 
 { 
+
   // shared memory for part of the signal
   extern __shared__ float shared[];  
 
-  // thread runtime environment, 1D parametrization
+  // thread runtime environment, 2D parametrization
   const int gdim = gridDim.x;
   // const int bdim = blockDim.x;
   const int bid = blockIdx.x;
   const int tid = threadIdx.x;  
 
-  const int col_offset = 1024 * blockIdx.y;
+  const int row_offset = 0; //gridDim.y * blockIdx.y;
 
 
   // global thread id (w.r.t. to total data set)
-  const int tid_global = (bid * bdim) + tid;    
-  unsigned int idata = (bid * (2 * bdim)) + tid;
+  const int tid_global = (bid * bdim) + tid ;    
+  unsigned int idata = (bid * (2 * bdim)) + tid ;
 
   // read data from global memory
-  shared[tid] = id[idata +col_offset];
-  shared[tid + bdim] = id[idata + bdim + col_offset];
+  shared[tid] = id[idata +row_offset];
+  shared[tid + bdim] = id[idata + bdim + row_offset];
   __syncthreads();
 
   // this operation has a two way bank conflicts for all threads, this are two
@@ -287,7 +339,7 @@ dwtHaar2D( float* id, float* od, float* approx_final,
 
   // detail coefficient, not further referenced so directly store in
   // global memory
-  od[tid_global + slength_step_half + col_offset] = (data0 - data1) * INV_SQRT_2;
+  od[tid_global + slength_step_half ] = 128; // (data0 - data1) * INV_SQRT_2;
 
   // offset to avoid bank conflicts
   // see the scan example for a more detailed description
@@ -340,7 +392,7 @@ dwtHaar2D( float* id, float* od, float* approx_final,
 	      unsigned int idata1 = idata0 + offset_neighbor;
 
 	      // position of write into global memory
-	      unsigned int g_wpos = (num_threads * gdim) + (bid * num_threads) + tid +  col_offset;
+	      unsigned int g_wpos = (num_threads * gdim) + (bid * num_threads) + tid;
 
 	      // compute wavelet decomposition step
 
@@ -350,7 +402,7 @@ dwtHaar2D( float* id, float* od, float* approx_final,
 
 	      // detail coefficient, not further modified so directly store 
 	      // in global memory
-	      od[g_wpos] = (shared[c_idata0] - shared[c_idata1]) * INV_SQRT_2;
+	      od[g_wpos] = 255.0f ;//(shared[c_idata0] - shared[c_idata1]) * INV_SQRT_2;
 
 	      // approximation coefficient
 	      // note that the representation in shared memory becomes rather sparse 
@@ -374,9 +426,48 @@ dwtHaar2D( float* id, float* od, float* approx_final,
       // which are performed after an interblock syncronization on host side
       if( 0 == tid) 
         {
-	  approx_final[bid + col_offset] = shared[0];
+	  approx_final[bid + row_offset] = shared[0];
         }
 
     } // end early out if possible
 }
 
+
+
+__global__
+void simple_copy_kernel(int *in, int *out) {
+  const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  out[tid] = in[(tid%1025)];
+}
+
+
+void from_grayscale_floats_to_ppm(const char *filename, float *d_odata, int img_w, int img_h) {
+
+  int img_size = (img_h *img_w);
+  int mem_size = img_size*sizeof(int);
+  dim3 block, grid;
+
+  block.x = 512;
+  grid.x = img_size/block.x;
+ 
+
+
+  int *int_image, *data;
+  cutilSafeCall( cudaMalloc( (void**) &int_image, mem_size));
+  data = (int*) malloc(sizeof(int) * img_size);
+
+  from_grayscale_floats<<< grid, block>>>(d_odata, int_image ,img_w * img_h);
+  HANDLE_ERROR(cudaPeekAtLastError(), "after from grayscale");
+
+
+  /* copy result back */
+  cutilSafeCall( cudaMemcpy(data, int_image, mem_size , cudaMemcpyDeviceToHost) );
+
+  /* write result out */
+  cutSavePPM4ub(filename, (unsigned char*) data, img_w, img_h);
+
+  /* free stuff */
+  free(data);
+  cutilSafeCall( cudaFree(int_image));
+
+}

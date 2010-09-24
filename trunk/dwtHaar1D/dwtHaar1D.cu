@@ -208,7 +208,7 @@ runTest( int argc, char** argv)
     if( dlevels_complete <= 10) 
     {
         // decomposition can be performed at once
-        block_size.x = num_threads_total_left;   
+         block_size.x = num_threads_total_left;   
         approx_is_input = 0;
     }
     else 
