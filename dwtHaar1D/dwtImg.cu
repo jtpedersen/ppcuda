@@ -49,8 +49,8 @@ void recomposeStep(float *D, float *out, int half_step, int level) {
     int offset = blockIdx.y * 1024;
     float coarse = D[offset + id]; 
     float detail = D[offset + id + half_step];
-    out[offset + 2 * id] = (coarse + detail );
-    out[offset + 2 * id + 1] = (coarse - detail );
+    out[offset + 2 * id] = (coarse + detail )*INV_SQRT_2;
+    out[offset + 2 * id + 1] = (coarse - detail )*INV_SQRT_2;
   } 
 
   __syncthreads();
@@ -61,13 +61,13 @@ void recomposeStep(float *D, float *out, int half_step, int level) {
 __global__
 void recompose(float *D, float * out, int levels) {
   unsigned int half_step = 2 * blockDim.x>>levels;
-
+  unsigned int id = threadIdx.x;
+  int offset = blockIdx.y * 1024 ;
   for (int i=0; i < levels; i++) {
     recomposeStep(D, out, half_step, i);
     half_step <<= 1;
     D = out;    
   }
-
 }
   
 
@@ -193,7 +193,7 @@ void to_grayscale_floats(int *in, float *out, int size) {
   unsigned char g = (pixel >> 8) & 0xFF;
   unsigned char b = pixel & 0xFF;
 
-  out[tid] = (r + g + b);
+  out[tid] = (r + g + b)/3.0f;
 
 }
 
@@ -203,10 +203,10 @@ void from_grayscale_floats(float *in, int* out, int size) {
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid >= size)
     return;
- 
-  unsigned char val = (unsigned char) (in[tid]/3.0f);
-  val = max(min(255, val), 0);
-  int pixel = val << 24 | val << 16 | val << 8 | val;
+  float p = in[tid];
+  p = max(min(255.0f, p), 0.0f);
+  unsigned char val = (unsigned char) p;
+  int pixel = val << 16 | val << 8 | val;
   out[tid] = pixel;
 
 }
