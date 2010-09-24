@@ -189,9 +189,9 @@ dwtHaar1D( float* id, float* od, float* approx_final,
                 shared[c_idata0] = (shared[c_idata0] + shared[c_idata1]) * INV_SQRT_2;
 
                 // update storage offset for details
-                num_threads = num_threads >> 1;   // div 2
+                num_threads >>= 1;   // div 2
                 offset_neighbor <<= 1;   // mul 2 
-                idata0 = idata0 << 1;   // mul 2     
+                idata0 <<= 1;   // mul 2     
             }
 
             // sync after each decomposition step
