@@ -22,14 +22,12 @@ int
 main( int argc, char** argv) 
 {
   if (argc != 3) {
-    printf("give a filename an d no of levels\n");
+    printf("give a filename and clamp level\n");
   }
 
-  test_img(argv[1], atoi(argv[2]));
+  float c = atof(argv[2]);
 
-  //    runTest( argc, argv);
-
-    // cutilExit(argc, argv);
+  test_img(argv[1], c );
 
     return 0;
 }
