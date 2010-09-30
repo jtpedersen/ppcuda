@@ -13,11 +13,10 @@
 cudaEvent_t start, stop;
 
 
-#define USE_TEXTURE 1
+#define USE_TEXTURE_ROW 0
+#define USE_TEXTURE_COL 1
 
-#if USE_TEXTURE
 texture <float, 2> in_tex;
-#endif
 
 #define HANDLE_ERROR(X, MSG) do { if (cudaSuccess != X)			\
       {printf("cuda fejl: %s\n i %s\n", cudaGetErrorString(cudaGetLastError()), MSG); \
@@ -304,7 +303,7 @@ void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, 
   unsigned int mem_shared = (2 * block_size.x) * sizeof( float);
   // extra memory requirements to avoid bank conflicts
   mem_shared += ((2 * block_size.x) / NUM_BANKS) * sizeof( float);
-  #if USE_TEXTURE
+  #if USE_TEXTURE_ROW
     cudaBindTexture2D( 0,&in_tex, d_idata ,&desc, img_w, img_h, smem_size);
   #endif
   
@@ -319,7 +318,7 @@ void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, 
   printf("Time to optimized_decompose for rows %f\n", stop_timer());
 
 
-  #if USE_TEXTURE
+  #if USE_TEXTURE_ROW
   cudaUnbindTexture(in_tex);
   #endif
 
@@ -329,7 +328,7 @@ void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, 
    cutilSafeCall (cudaMemcpy (d_idata, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
 /*     swap_pointers(d_idata, d_odata);   */
 
-  #if USE_TEXTURE
+  #if USE_TEXTURE_COL
     cudaBindTexture2D( 0,&in_tex, d_idata ,&desc, img_w, img_h, smem_size);
   #endif
   
@@ -342,7 +341,7 @@ void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, 
 							 block_size.x ); 
   printf("Time to optimized_decompose for cols %f\n", stop_timer());
 
-  #if USE_TEXTURE
+  #if USE_TEXTURE_COL
   cudaUnbindTexture(in_tex);
   #endif
 
@@ -374,6 +373,10 @@ void reconstruct(float *d_idata, float *d_odata, int levels, int img_w, int img_
   // extra memory requirements to avoid bank conflicts
   mem_shared += ((2 * block_size.x) / NUM_BANKS) * sizeof( float);
 
+  #if USE_TEXTURE_COL
+    cudaBindTexture2D( 0,&in_tex, d_idata ,&desc, img_w, img_h, smem_size);
+  #endif
+
   start_timer();
   twdHaar2D_col<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
 							 levels,
@@ -381,19 +384,26 @@ void reconstruct(float *d_idata, float *d_odata, int levels, int img_w, int img_
 							 block_size.x );
 
   printf("Time to reconstruct cols  %f\n", stop_timer());
+  #if USE_TEXTURE_COL
+    cudaUnbindTexture(in_tex);
+  #endif
 
   cutilSafeCall (cudaMemcpy (d_idata, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
 /*   swap_pointers(d_odata, d_idata); */
+  #if USE_TEXTURE_ROW
+    cudaBindTexture2D( 0,&in_tex, d_idata ,&desc, img_w, img_h, smem_size);
+  #endif
+
   start_timer();
   twdHaar2D_row<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
 							 levels,
 							 512,
 							 block_size.x );
   printf("Time to reconstruct rows %f\n", stop_timer());
-
-  HANDLE_ERROR(cudaPeekAtLastError(), "after dwtHaar2D");
-
-}
+  #if USE_TEXTURE_ROW
+    cudaUnbindTexture(in_tex);
+  #endif
+  }
 
 
 
@@ -414,7 +424,7 @@ dwtHaar2D_row( float* id, float* od,
   unsigned int idata = (bid * (2 * bdim)) + tid ;
   const int row_offset = gridDim.y * blockIdx.y;
 
-#if USE_TEXTURE
+#if USE_TEXTURE_ROW
   // read data from texture
   shared[tid] = tex2D(in_tex, (float)idata, (float)row_offset);
   shared[tid + bdim] = tex2D(in_tex, (float) (idata + bdim), (float)row_offset);
@@ -559,7 +569,7 @@ void dwtHaar2D_col( float* id, float* od,
 //  const int tid_global = tid * stride ;    
 
 
-#if USE_TEXTURE
+#if USE_TEXTURE_COL
   shared[tid] =            tex2D(in_tex, (float)col_offset, (float)tid);
   shared[tid+blockDim.x] = tex2D(in_tex, (float)col_offset, (float)(tid + blockDim.x)  );
 #else 
@@ -637,9 +647,17 @@ void twdHaar2D_row( float* id, float* od,
   const int y = blockIdx.y;
 
   int levels = dlevels;
+#if USE_TEXTURE_ROW
+  // read data from texture
+  shared[tid] = tex2D(in_tex, (float)tid, (float)y);
+  shared[tid + bdim] = tex2D(in_tex, (float) tid+blockDim.x, (float)y);
+#else
    // read data from global memory
   shared[tid] =            id[PIXEL(tid, y )];
   shared[tid+blockDim.x] = id[PIXEL(tid + blockDim.x, y )];
+#endif
+
+
 
   __syncthreads();
 
@@ -683,10 +701,16 @@ void twdHaar2D_col( float* id, float* od,
   const int y = blockIdx.y;
 
   int levels = dlevels;
+
+  #if USE_TEXTURE_ROW
+  // read data from texture
+  shared[tid] = tex2D(in_tex, (float)y, (float)tid);
+  shared[tid + bdim] = tex2D(in_tex, (float) y, (float)tid+blockDim.x);
+#else
    // read data from global memory
   shared[tid] =            id[PIXEL(y, tid )];
   shared[tid+blockDim.x] = id[PIXEL(y, tid + blockDim.x )];
-
+#endif
   __syncthreads();
 
   while(levels > 0) {
@@ -742,7 +766,6 @@ void clamp_function(float *data, int size, float clamp) {
   cutilSafeCall( cudaMalloc( (void**) &tmp, sizeof(float) * size));
 
   clamp_kernel<<< grid, block>>>(data, tmp, clamp);
-  HANDLE_ERROR(cudaPeekAtLastError(), "after clamp kernel");
 
   /* copy result back */
   cutilSafeCall( cudaMemcpy(data, tmp, size * sizeof(float) , cudaMemcpyDeviceToDevice) );
@@ -766,8 +789,7 @@ void from_grayscale_floats_to_ppm(const char *filename, float *d_odata, int img_
   data = (int*) malloc(sizeof(int) * img_size);
 
   from_grayscale_floats<<< grid, block>>>(d_odata, int_image ,img_w * img_h);
-  HANDLE_ERROR(cudaPeekAtLastError(), "after from grayscale");
-
+  
 
   /* copy result back */
   cutilSafeCall( cudaMemcpy(data, int_image, mem_size , cudaMemcpyDeviceToHost) );

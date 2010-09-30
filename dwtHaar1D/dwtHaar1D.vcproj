@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="9,00"
 	Name="dwtHaar1D"
 	ProjectGUID="{3C92EEA3-3051-40A2-BE82-EA6F93A3B152}"
 	RootNamespace="dwtHaar1D"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -36,7 +37,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -78,6 +79,8 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/dwtHaar1D.pdb"
 				SubSystem="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -97,9 +100,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -121,7 +121,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -164,6 +164,8 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/dwtHaar1D.pdb"
 				SubSystem="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -185,9 +187,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -207,7 +206,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -247,6 +246,8 @@
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -268,9 +269,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -290,7 +288,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -331,6 +329,8 @@
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -352,9 +352,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -374,7 +371,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -416,6 +413,8 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/dwtHaar1D.pdb"
 				SubSystem="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -437,9 +436,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -459,7 +455,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -502,6 +498,8 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/dwtHaar1D.pdb"
 				SubSystem="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -523,9 +521,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -545,7 +540,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -586,6 +581,8 @@
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -607,9 +604,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -629,7 +623,7 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
-				Name="CUDA Build Rule"
+				Name="CUDA"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -671,6 +665,8 @@
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="1"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -692,9 +688,6 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="IF EXIST cg_variables.h move cg_variables.h $(ConfigurationName)\"
 			/>
@@ -709,86 +702,16 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\dwt1d_main.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\dwtHaar1D.cu"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-						Debug="true"
-						Optimization="0"
-						Runtime="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|x64"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-						Debug="true"
-						Optimization="0"
-						Runtime="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="EmuDebug|Win32"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-						Emulation="true"
-						Optimization="0"
-						Runtime="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="EmuDebug|x64"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-						Emulation="true"
-						Optimization="0"
-						Runtime="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="EmuRelease|Win32"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-						Emulation="true"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="EmuRelease|x64"
-					>
-					<Tool
-						Name="CUDA Build Rule"
-						Include="$(CUDA_INC_PATH);../../common/inc"
-						Emulation="true"
-					/>
-				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dwtHaar1D.h"
+				>
 			</File>
 			<File
 				RelativePath=".\dwtHaar1D_kernel.cu"
@@ -857,6 +780,18 @@
 						Name="VCCustomBuildTool"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dwtHaar1D_kernel.h"
+				>
+			</File>
+			<File
+				RelativePath=".\dwtImg.cu"
+				>
+			</File>
+			<File
+				RelativePath=".\dwtImg.h"
+				>
 			</File>
 		</Filter>
 		<Filter
