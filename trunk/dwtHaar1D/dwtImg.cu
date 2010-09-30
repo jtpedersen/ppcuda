@@ -10,7 +10,14 @@
 #include "dwtHaar1D.h"
 #include "dwtHaar1D_kernel.h"
 
+cudaEvent_t start, stop;
 
+
+#define USE_TEXTURE 1
+
+#if USE_TEXTURE
+texture <float, 2> in_tex;
+#endif
 
 #define HANDLE_ERROR(X, MSG) do { if (cudaSuccess != X)			\
       {printf("cuda fejl: %s\n i %s\n", cudaGetErrorString(cudaGetLastError()), MSG); \
@@ -134,6 +141,8 @@ void simple_decompose(float *d_idata, float *d_odata, int levels) {
 
 /* something quick and dirty */
 void test_img(const char* file, float clamp) {
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
 
   int levels = 10;
 
@@ -201,6 +210,8 @@ void test_img(const char* file, float clamp) {
   //from grayscale
   from_grayscale_floats_to_ppm("output.ppm", d_odata, img_w, img_h);
 
+  cudaEventDestroy( start );
+  cudaEventDestroy( stop );
 
 }
 
@@ -246,9 +257,33 @@ void from_grayscale_floats(float *in, int* out, int size) {
 }
 
 
+void swap_pointers(void *p1, void *p2) {
+  void *tmp;
+  tmp = p1;
+  p1 = p2;
+  p2 = tmp;
+}
+
+
+void start_timer() {
+  cudaEventRecord( start, 0 );
+}
+
+float stop_timer() {
+  float time;
+  cudaEventRecord( stop, 0 );
+  cudaEventSynchronize( stop );
+  cudaEventElapsedTime( &time, start, stop );
+  return time;
+}
+
+
+
+
+
+const cudaChannelFormatDesc desc = cudaCreateChannelDesc<float>();
 
 void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, int img_h) {
-
   // 2D signal so the arrangement of elements is also 2D
   dim3  block_size;
   dim3  grid_size;  
@@ -261,7 +296,6 @@ void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, 
   /* smemsize */
   int smem_size = img_h * img_w * sizeof(float);
 
-
   /* approx_final */
 /*   float *approx_final; */
 /*   cutilSafeCall( cudaMalloc( (void**) &approx_final, smem_size)); */
@@ -270,28 +304,48 @@ void optimized_decompose(float *d_idata, float *d_odata, int levels, int img_w, 
   unsigned int mem_shared = (2 * block_size.x) * sizeof( float);
   // extra memory requirements to avoid bank conflicts
   mem_shared += ((2 * block_size.x) / NUM_BANKS) * sizeof( float);
-
-
+  #if USE_TEXTURE
+    cudaBindTexture2D( 0,&in_tex, d_idata ,&desc, img_w, img_h, smem_size);
+  #endif
   
   /* from_grayscale_floats_to_ppm("d_idata.ppm", d_idata, img_w, img_h); */
 
+  start_timer();
   // run kernel
   dwtHaar2D_row<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
 						     levels,
 						     512,
 						     block_size.x );
+  printf("Time to optimized_decompose for rows %f\n", stop_timer());
+
+
+  #if USE_TEXTURE
+  cudaUnbindTexture(in_tex);
+  #endif
+
 
 /*   from_grayscale_floats_to_ppm("row_decomp.ppm", d_odata, img_w, img_h); */
 
-  cutilSafeCall (cudaMemcpy (d_idata, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
+   cutilSafeCall (cudaMemcpy (d_idata, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
+/*     swap_pointers(d_idata, d_odata);   */
 
+  #if USE_TEXTURE
+    cudaBindTexture2D( 0,&in_tex, d_idata ,&desc, img_w, img_h, smem_size);
+  #endif
   
 /*   from_grayscale_floats_to_ppm("col_input.ppm", d_idata, img_w, img_h); */
 
-  dwtHaar2D_col<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
+   start_timer();
+   dwtHaar2D_col<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
 							 levels,
 							 512,
 							 block_size.x ); 
+  printf("Time to optimized_decompose for cols %f\n", stop_timer());
+
+  #if USE_TEXTURE
+  cudaUnbindTexture(in_tex);
+  #endif
+
 
 }
 
@@ -320,19 +374,22 @@ void reconstruct(float *d_idata, float *d_odata, int levels, int img_w, int img_
   // extra memory requirements to avoid bank conflicts
   mem_shared += ((2 * block_size.x) / NUM_BANKS) * sizeof( float);
 
-
+  start_timer();
   twdHaar2D_col<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
 							 levels,
 							 512,
 							 block_size.x );
 
-  cutilSafeCall (cudaMemcpy (d_idata, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
+  printf("Time to reconstruct cols  %f\n", stop_timer());
 
+  cutilSafeCall (cudaMemcpy (d_idata, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
+/*   swap_pointers(d_odata, d_idata); */
+  start_timer();
   twdHaar2D_row<<<grid_size, block_size, mem_shared >>>( d_idata, d_odata,
 							 levels,
 							 512,
 							 block_size.x );
-
+  printf("Time to reconstruct rows %f\n", stop_timer());
 
   HANDLE_ERROR(cudaPeekAtLastError(), "after dwtHaar2D");
 
@@ -354,19 +411,21 @@ dwtHaar2D_row( float* id, float* od,
   const int gdim = gridDim.x;
   const int bid = blockIdx.x;
   const int tid = threadIdx.x;  
-
+  unsigned int idata = (bid * (2 * bdim)) + tid ;
   const int row_offset = gridDim.y * blockIdx.y;
 
-
-  // global thread id (w.r.t. to total data set)
-  const int tid_global = row_offset + (bid * bdim) + tid ;    
-
- 
-  unsigned int idata = (bid * (2 * bdim)) + tid ;
-
+#if USE_TEXTURE
+  // read data from texture
+  shared[tid] = tex2D(in_tex, (float)idata, (float)row_offset);
+  shared[tid + bdim] = tex2D(in_tex, (float) (idata + bdim), (float)row_offset);
+#else
   // read data from global memory
   shared[tid] = id[idata + row_offset];
   shared[tid + bdim] = id[idata + bdim + row_offset];
+#endif
+
+  // global thread id (w.r.t. to total data set)
+  const int tid_global = row_offset + (bid * bdim) + tid ;    
   __syncthreads();
 
   // this operation has a two way bank conflicts for all threads, this are two
@@ -499,9 +558,15 @@ void dwtHaar2D_col( float* id, float* od,
 
 //  const int tid_global = tid * stride ;    
 
+
+#if USE_TEXTURE
+  shared[tid] =            tex2D(in_tex, (float)col_offset, (float)tid);
+  shared[tid+blockDim.x] = tex2D(in_tex, (float)col_offset, (float)(tid + blockDim.x)  );
+#else 
    // read data from global memory
   shared[tid] =            id[PIXEL(col_offset, tid )];
   shared[tid+blockDim.x] = id[PIXEL(col_offset, tid + blockDim.x  )];
+#endif
   __syncthreads();
 
   float data0 = shared[2*tid];
