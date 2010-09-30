@@ -239,7 +239,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="cudart.lib cutil32.lib"
-				OutputFile="../../bin/win32/$(ConfigurationName)/dwtHaar1D.exe"
+				OutputFile="$(ConfigurationName)/dwtHaar1D.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(CUDA_LIB_PATH);../../common/lib"
 				GenerateDebugInformation="true"

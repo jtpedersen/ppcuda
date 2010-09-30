@@ -1,0 +1,19 @@
+# CUDA_PROFILE_LOG_VERSION 2.0
+# CUDA_PROFILE_CSV 1
+# TIMESTAMPFACTOR 11d82d4a503b7062
+# CUDA_DEVICE 0 GeForce 8800 GTX
+gpustarttimestamp,method,gputime,cputime,occupancy,gridSizeX,gridSizeY,blockSizeX,blockSizeY,blockSizeZ,dynSmemPerBlock,staSmemPerBlock,registerPerThread,streamID,memTransferSize,sm_cta_launched,branch,divergent_branch,instructions,warp_serialize,cta_launched,gld_incoherent,gld_coherent,gst_incoherent,gst_coherent,local_load,local_store,tlb_hit,tlb_miss
+11d832773c373260,memcpyHtoD,1816.51,2773.9,,,,,,,,,,0,4194304
+11d832773c8eb5a0,memcpyHtoD,2015.01,3014.39,,,,,,,,,,0,4194304
+11d832773cb5e780,_Z19to_grayscale_floatsPiPfi,237.312,321.423,0.667,2048,1,512,1,1,0,32,4,0,,0,10368,128,63776,0,256,0,8192,0,32768,0,0,114,902
+11d832773ccc5800,_Z21from_grayscale_floatsPfPii,240.192,292.272,0.667,2048,1,512,1,1,0,32,4,0,,0,16512,128,57632,0,256,0,8192,0,32768,0,0,279,737
+11d832773cd1f2a0,memcpyDtoH,2582.82,3427.87,,,,,,,,,,0,4194304
+11d83277723b9980,_Z13decompositionPfS_i,1882.02,2492.75,0.667,1,1024,512,1,1,0,32,12,0,,0,99008,704,256560,0,128,261760,8320,3840,99328,0,0,870,146
+11d832777269aee0,_Z21from_grayscale_floatsPfPii,275.008,363.231,0.667,2048,1,512,1,1,0,32,4,0,,0,20608,2176,69920,0,256,0,8192,0,32768,0,0,223,793
+11d83277726fc320,memcpyDtoH,3483.26,4325.02,,,,,,,,,,0,4194304
+11d83277a9678680,_Z12clamp_kernelPfS_f,188.16,252.766,0.667,2048,1,512,1,1,0,32,2,0,,0,8320,128,33044,0,256,0,8192,0,32768,0,0,32,984
+11d83277a96d0e40,memcpyDtoD,878.304,3.068,,,,,,,,,,0,4194304
+11d83277a97a7ba0,memcpyDtoD,867.456,0.767,,,,,,,,,,0,4194304
+11d83277a987eaa0,_Z9recomposePfS_i,1896.9,3707.1,0.667,1,1024,512,1,1,0,32,9,0,,0,97984,704,236331,0,128,1920,16640,523520,512,0,0,941,83
+11d83277a9b79b20,_Z21from_grayscale_floatsPfPii,239.872,300.327,0.667,2048,1,512,1,1,0,32,4,0,,0,16512,128,57632,0,256,0,8192,0,32768,0,0,213,803
+11d83277a9bd6c80,memcpyDtoH,2795.49,4002.06,,,,,,,,,,0,4194304
