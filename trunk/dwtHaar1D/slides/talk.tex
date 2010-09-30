@@ -1,0 +1,352 @@
+% Created 2010-01-31 Sun 12:52
+\documentclass[11pt]{beamer}
+
+      \mode<presentation>
+
+      \usetheme{Antibes}
+
+      \usecolortheme{lily}
+
+      \beamertemplateballitem
+
+      \setbeameroption{show notes}
+      \usepackage[utf8]{inputenc}
+
+      \usepackage[T1]{fontenc}
+
+      \usepackage{hyperref}
+
+      \usepackage{color}
+      \usepackage{listings}
+      \lstset{numbers=none,language=[ISO]C++,tabsize=4,
+  frame=single,
+  basicstyle=\small,
+  showspaces=false,showstringspaces=false,
+  showtabs=false,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{red},
+  }
+
+      \usepackage{verbatim}
+
+      \institute{Hack Århus}
+          
+       \subject{CNC}
+
+
+
+\title{A CNC machine in every home}
+\author{Jacob Toft Pedersen}
+\date{31 January 2010}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+\vspace*{1cm}
+
+
+\section{Introduction}
+\label{sec-1}
+
+
+
+
+\section{Why}
+\label{sec-2}
+
+\subsection*{Inspiration}\begin{frame}[fragile]
+\label{sec-2.1}
+
+\includegraphics[width=0.97\textwidth,keepaspectratio]{pc-va.jpg}
+\begin{itemize}
+\item Heard about reprap and 3D fabrication
+\item CCC talk ``Objects as software''
+\end{itemize}
+\end{frame}
+\subsection*{A necessity}\begin{frame}[fragile]
+\label{sec-2.2}
+
+\includegraphics[width=0.7\textwidth,keepaspectratio]{plugs.jpg}
+\begin{itemize}
+\item The possibility to make life-critical necessities like bathroom
+     plug and coffee-scoop.
+\end{itemize}
+\end{frame}
+\subsection*{Soon every home will have one}\begin{frame}[fragile]
+\label{sec-2.3}
+
+\includegraphics[width=0.5\textwidth,keepaspectratio]{laser.jpg}
+\begin{itemize}
+\item The price of a laser printer in `85 is equivalent to the price of a
+     professional fabber today!
+\end{itemize}
+\end{frame}
+\subsection*{Can Ikea survive the revolution?}\begin{frame}[fragile]
+\label{sec-2.4}
+
+\begin{itemize}
+\item When we were able to digitize and share music (MP3's) the music
+     market changed
+\item What will happen when we can digitize real life objects, share
+     and replicate them ???
+\end{itemize}
+\end{frame}
+\section{How}
+\label{sec-3}
+
+
+\subsection*{JGRO}\begin{frame}[fragile]
+\label{sec-3.1}
+
+\includegraphics[width=0.7\textwidth,keepaspectratio]{jgro.png}
+\begin{itemize}
+\item This is a CNC-router
+
+\begin{itemize}
+\item but since its a Cartesian robot its possible to make it into a
+      rep-strap.
+\end{itemize}
+
+\item Easy to build (often there is a chicken / egg problem)
+\item Threaded rods, skateboard bearings and MDF
+\end{itemize}
+\end{frame}
+\subsection*{Huset}\begin{frame}[fragile]
+\label{sec-3.2}
+
+\includegraphics[width=0.7\textwidth,keepaspectratio]{huset.jpg}
+\begin{itemize}
+\item They had everything i needed (minus skateboard bearings)
+\item They had expertise and were very helpful
+\end{itemize}
+\end{frame}
+\subsection*{z-axis}\begin{frame}[fragile]
+\label{sec-3.3}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{z-axis.jpg}
+
+\end{frame}
+\subsection*{Machine}\begin{frame}[fragile]
+\label{sec-3.4}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{athome.jpg}
+
+\end{frame}
+\subsection*{Control}\begin{frame}[fragile]
+\label{sec-3.5}
+
+\includegraphics[width=0.7\textwidth,keepaspectratio]{kit.jpg}
+\begin{itemize}
+\item Based on steppers, bought a kit from China.
+\item Hooked up to linuxCNC via lpt.
+
+\begin{itemize}
+\item I did fear the setup procedure - but it was a breeze
+\end{itemize}
+
+\end{itemize}
+\end{frame}
+\subsection*{GCode}\begin{frame}[fragile]
+\label{sec-3.6}
+
+\begin{lstlisting}[language=c]
+G21 (Unit in mm)
+G90 (Absolute distance mode)
+G64 P0.01 (Exact Path 0.001 tol.)
+G40 (Cancel diameter comp.)
+G49 (Cancel length comp.)
+T1M6 (Tool change to T1)
+G0 
+Z 0.100000 F 50.000000
+X 0.000000 Y 0.000000 
+G1 F100.000000 
+Z 0.000000 F 50.000000
+G1 F50.000000 
+\end{lstlisting}
+\begin{itemize}
+\item LinuxCNC, understands / interprets g-codes.
+\item g-codes are ``assembly'' for machines.
+\item You can write it, but you would rather ``compile'' to it.
+\end{itemize}
+\end{frame}
+\section{Then what?}
+\label{sec-4}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{scoop.png}
+\begin{itemize}
+\item Log in to thingiverse.com
+
+\begin{itemize}
+\item find something useful
+\item hit the print button.
+\end{itemize}
+
+\item I did suspect that I needed some time to learn the ins and outs of CAE/CAM/CAD
+\item ``Boy was I in for  a surprise''
+\end{itemize}
+\subsection*{The software}\begin{frame}[fragile]
+\label{sec-4.1}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{artcam.png}
+\begin{itemize}
+\item Open source programs, several projects. Requires some experience
+     with CAE/CAM/CAD.
+
+\begin{itemize}
+\item dxf2gcode
+\item HeeksCAD/HeeksCNC
+\end{itemize}
+
+\end{itemize}
+\end{frame}
+\section{Example "A logo sign"}
+\label{sec-5}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{hack_first.jpg}
+\begin{itemize}
+\item Needed a new Logo
+\item Idea
+
+\begin{itemize}
+\item Angled planes, to reflect different colors of light.
+\end{itemize}
+
+\end{itemize}
+\subsection*{Design}\begin{frame}[fragile]
+\label{sec-5.1}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{design.jpg}
+\begin{itemize}
+\item I only have 3 axis. Thus cutting an angled plane, will be
+      influenced by tool-size.
+\item Should it be holes, protruding cylinders, halfway through?
+\item What should the angle be, where to put lights? \\
+\end{itemize}
+\end{frame}
+\subsection*{Generating gcode}\begin{frame}[fragile]
+\label{sec-5.2}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{inkscape.png}
+\begin{itemize}
+\item 3d CAD model and use software to convert it to gcode
+\item Use a Vector-graphics based approach and a program to calculate the gcode?
+\item The easy solution : height map.
+\end{itemize}
+\end{frame}
+\subsection*{Running the gcode}\begin{frame}[fragile]
+\label{sec-5.3}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{spiral.png}
+\begin{itemize}
+\item 3 tools : 12 mm two-flute, 6 mm two-flute 3mm spiral cutter
+\item Tool shapes, Feed rates come back to hunt you.
+\item Two flute 12 mm, not made for drilling,  3 mm spiral-cutter does not have a 3 mm neck
+\item 1.5 mm apart, does still leave tool-marks, height mapped
+     cylinders.
+\end{itemize}
+\end{frame}
+\subsection*{Finishing up}\begin{frame}[fragile]
+\label{sec-5.4}
+
+\includegraphics[width=0.7\textwidth,keepaspectratio]{logo_raw.jpg}
+\begin{itemize}
+\item Then sanding, painting - still needs a light setup.
+\end{itemize}
+\end{frame}
+\section{"I made this"}
+\label{sec-6}
+
+\includegraphics[width=0.65\textwidth,keepaspectratio]{first.jpg}
+\begin{itemize}
+\item Setup for the ``Virgin cutting'' / ``Jomfru fræsning''
+\end{itemize}
+\subsection*{First object}\begin{frame}[fragile]
+\label{sec-6.1}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{first_obj.jpg}
+\begin{itemize}
+\item The very first 3d object
+\end{itemize}
+\end{frame}
+\subsection*{Gears and signs}\begin{frame}[fragile]
+\label{sec-6.2}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{assorted.jpg}
+
+\end{frame}
+\subsection*{X-mas present prototype}\begin{frame}[fragile]
+\label{sec-6.3}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{mads1.jpg}
+
+\end{frame}
+\subsection*{X-mas present done}\begin{frame}[fragile]
+\label{sec-6.4}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{mads2.jpg}
+
+\end{frame}
+\subsection*{X-mas present in action}\begin{frame}[fragile]
+\label{sec-6.5}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{mads3.jpg}
+
+\end{frame}
+\subsection*{Magazine holder}\begin{frame}[fragile]
+\label{sec-6.6}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{magazine.jpg}
+
+\end{frame}
+\subsection*{Raster Gandhi}\begin{frame}[fragile]
+\label{sec-6.7}
+
+\includegraphics[width=0.5\textwidth,keepaspectratio]{gandhi.jpg}
+
+\end{frame}
+\subsection*{Raster Jimi}\begin{frame}[fragile]
+\label{sec-6.8}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{jimi.jpg}
+
+\end{frame}
+\subsection*{Sign Mads}\begin{frame}[fragile]
+\label{sec-6.9}
+
+\includegraphics[width=0.9\textwidth,keepaspectratio]{mads.jpg}
+
+\end{frame}
+\subsection*{Djørup}\begin{frame}[fragile]
+\label{sec-6.10}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{djorup.jpg}
+
+\end{frame}
+\subsection*{Thomas painting}\begin{frame}[fragile]
+\label{sec-6.11}
+
+\includegraphics[width=0.8\textwidth,keepaspectratio]{thomas1.jpg}
+
+
+\end{frame}
+\section{Resources}
+\label{sec-7}
+
+\begin{itemize}
+\item \href{http://media.ccc.de/browse/congress/2008/25c3-2781-en-objects_as_software_the_coming_revolution.html}{Objects as Software: The Coming Revolution (CCC talk)}
+\item \href{http://www.linuxcnc.org/}{Linux CNC}
+
+\begin{itemize}
+\item \href{http://wiki.linuxcnc.org/cgi-bin/emcinfo.pl%3FCam}{List of CAD/CAM/CAE software}
+\end{itemize}
+
+\item \href{http://www.cnczone.com}{CNC zone ``The place for CNC information''}
+\item \href{http://reprap.org}{Rep Rap}
+\item \href{http://www.lav-det-selv.dk/Forum/afv/topicsview/aff/36/}{Lav det selv - CNC forum}
+\item \href{http://rotand.dk/blog}{Jacobs seldomly updated blog}
+\end{itemize}
+
+\end{document}
