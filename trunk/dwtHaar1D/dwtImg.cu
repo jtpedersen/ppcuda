@@ -13,7 +13,7 @@
 cudaEvent_t start, stop;
 
 
-#define USE_TEXTURE_ROW 1
+#define USE_TEXTURE_ROW 0
 #define USE_TEXTURE_COL 0
 
 texture <float, 2> in_tex;
@@ -195,19 +195,19 @@ void test_img(const char* file, float clamp) {
   /* output original as grayscale */
   from_grayscale_floats_to_ppm("original.ppm", img_data, img_w, img_h);
 
-  simple_decompose(img_data, d_odata, levels);	
+  //simple_decompose(img_data, d_odata, levels);	
 
-  //optimized_decompose(img_data, d_odata, levels, img_w, img_h); 
+  optimized_decompose(img_data, d_odata, levels, img_w, img_h); 
 
   from_grayscale_floats_to_ppm("decomposition.ppm", d_odata, img_w, img_h);
   
   clamp_function(d_odata, img_w*img_h ,clamp);
-
+  from_grayscale_floats_to_ppm("clamped_decomposition.ppm", d_odata, img_w, img_h);
   cutilSafeCall (cudaMemcpy (img_data, d_odata, smem_size,  cudaMemcpyDeviceToDevice) );
-  //reconstruct(img_data, d_odata, levels, img_w, img_h); 
+  reconstruct(img_data, d_odata, levels, img_w, img_h); 
 
 
-  simple_recompose(img_data, d_odata, levels);
+  //simple_recompose(img_data, d_odata, levels);
 
   //from grayscale
   from_grayscale_floats_to_ppm("output.ppm", d_odata, img_w, img_h);
